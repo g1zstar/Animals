@@ -1,0 +1,8 @@
+## Interface: 70000
+## Title: Animals
+## Notes: need to be slain.
+## Author: GRAS
+## Version: 0.1
+## SavedVariablesPerCharacter: animalsDataPerChar
+
+Animals.lua
