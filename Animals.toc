@@ -6,3 +6,13 @@
 ## SavedVariablesPerCharacter: animalsDataPerChar
 
 Animals.lua
+animalsConfig.lua
+
+System\UI.lua
+System\Meat.lua
+System\Bread.lua
+
+Class\MONK.lua
+Class\DEMONHUNTER.lua
+
+System\Initialize.lua
