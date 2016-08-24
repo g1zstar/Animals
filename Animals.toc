@@ -5,6 +5,10 @@
 ## Version: 0.1
 ## SavedVariablesPerCharacter: animalsDataPerChar
 
+Libs\LibStub.lua
+Libs\AceConfig-3.0.lua
+Libs\AceConfigDialog-3.0.lua
+
 Animals.lua
 animalsConfig.lua
 
