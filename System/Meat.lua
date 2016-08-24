@@ -9,7 +9,7 @@ function animalsTable.animalsAuraBlacklist(object)
     local auraToCheck = nil
     for i = 1, #animalsTable.animalsAurasToIgnore do
         auraToCheck = animalsTable.animalsAurasToIgnore[i]
-        if animalsTable.Aura(object, auraToCheck) then return false end
+        if animalsTable.aura(object, auraToCheck) then return false end
     end
     return true
 end
@@ -20,7 +20,7 @@ function animalsTable.humansAuraBlacklist(object)
     local auraToCheck = nil
     for i = 1, #animalsTable.humansAurasToIgnore do
         auraToCheck = animalsTable.humansAurasToIgnore[i]
-        if animalsTable.Aura(object, auraToCheck) then return false end
+        if animalsTable.aura(object, auraToCheck) then return false end
     end
     return true
 end
@@ -65,15 +65,15 @@ function animalsTable.TTDF(unit) -- keep updated: see if this can be optimized
     end
 
     -- if health = 0 then set time to death to negative
-    if animalsTable.Health(unit) == 0 then animalsTable.TTD[unit] = -1 return end
+    if animalsTable.health(unit) == 0 then animalsTable.TTD[unit] = -1 return end
 
     -- Query current time (throttle updating over time)
     local nTime = GetTime()
     if not animalsTable.TTDM[unit] or nTime - animalsTable.TTDM[unit].nLastScan >= nScanThrottle then
         -- Current data
-        local data = animalsTable.Health(unit)
+        local data = animalsTable.health(unit)
 
-        if not animalsTable.TTDM[unit] then animalsTable.TTDM[unit] = {start = nTime, index = 1, maxvalue = animalsTable.Health(unit, max)/2, values = {}, nLastScan = nTime, estimate = nil} end
+        if not animalsTable.TTDM[unit] then animalsTable.TTDM[unit] = {start = nTime, index = 1, maxvalue = animalsTable.health(unit, max)/2, values = {}, nLastScan = nTime, estimate = nil} end
 
         -- Remember current time
         animalsTable.TTDM[unit].nLastScan = nTime

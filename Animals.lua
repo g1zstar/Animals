@@ -15,7 +15,7 @@ animalsTable.toggleLog = true
 
 for i = 1, 7 do
 	for o = 1, 3 do
-		animalsTable["Talent"..i..o] = false
+		animalsTable["talent"..i..o] = false
 	end
 end
 animalsTable.artifactWeapon = {
@@ -36,6 +36,9 @@ end
 function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player_entering_world and loading_screen_disabled
 	if originalEvent == "PLAYER_ENTERING_WORLD" then
 		if not animalsDataPerChar.class then animalsDataPerChar.class = select(2, UnitClass("player")) end
+		animalsTable.currentSpec = animalsTable.currentSpec or GetSpecialization()
+		animalsTable.cacheTalents()
+		animalsTable.cacheGear()
 		animalsTable.preventSlaying = true
 		animalsTable.targetAnimals = {}
 		animalsTable.targetHumans = {}
@@ -57,7 +60,7 @@ end
 function animalsTable.cacheTalents()
 	for i = 1, 7 do
 		for o = 1, 3 do
-			animalsTable["Talent"..i..o] = select(4, GetTalentInfo(i, o, 1))
+			animalsTable["talent"..i..o] = select(4, GetTalentInfo(i, o, 1))
 		end
 	end
 end
@@ -130,7 +133,7 @@ function animalsTable.startSlaying()
 		animalsTable.iterationNumer = animalsTable.iterationNumer + 1
 		animalsTable[animalsDataPerChar.class]()
 	else
-		print("Animals: No idea how to slay with this combination.")
+		print("Animals: No idea how to slay with this combination.\n"..animalsDataPerChar.class..animalsTable.currentSpec)
 		animalsTable.allowSlaying = false
 		animalsTable.monitorAnimationToggle("off")
 

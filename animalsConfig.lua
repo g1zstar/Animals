@@ -6,8 +6,8 @@ animalsDataPerChar = animalsDataPerChar or {Log = false}
 animalsTable.logFile = "C:\\Garrison.json"
 
 if not animalsDataPerChar.chaosMin then
-	animalsDataPerChar.chaosMin = 0
-	animalsDataPerChar.chaosMax = 0
+	animalsDataPerChar.chaosMin = 20
+	animalsDataPerChar.chaosMax = 60
 end
 
 animalsTable.skipLoS = {
@@ -47,7 +47,7 @@ animalsTable.spellsThatInterrupt["Blade Dancer Illianna"] = 0
 
 -- todo: populate with boss IDs
 animalsTable.bossList = {
-	
+
 }
 -- todo: should healing/tanking/instance dummies be under this?
 animalsTable.dummiesID = {
