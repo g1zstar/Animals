@@ -1,3 +1,5 @@
+local AC, ACD = LibStub("AceConfig-3.0"), LibStub("AceConfigDialog-3.0")
+
 local animalsName, animalsTable = ...
 local _ = nil
 

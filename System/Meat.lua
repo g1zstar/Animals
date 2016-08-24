@@ -34,16 +34,16 @@ function animalsTable.logToFile(message)
     end
 end
 
-function GS.humanNotDuplicate(unitPassed)
-    for i = 1, GS.AllyTargetsSize do
-        unit = GS.AllyTargets[i].Player
+function animalsTable.humanNotDuplicate(unitPassed)
+    for i = 1, animalsTable.humansSize do
+        unit = animalsTable.targetHumans[i].Player
         if unit == unitPassed then return false end
     end
     return true
 end
 
 -- ripped from CommanderSirow of the wowace forums
-function GS.TTDF(unit) -- keep updated: see if this can be optimized
+function animalsTable.TTDF(unit) -- keep updated: see if this can be optimized
     -- Setup trigger (once)
     if not nMaxSamples then
         -- User variables
@@ -52,64 +52,64 @@ function GS.TTDF(unit) -- keep updated: see if this can be optimized
     end
 
     -- Training Dummy alternate between 4 and 200 for cooldowns
-    if tContains(GS.Dummies, UnitName(unit)) then
-        if not GSR.DummyTTDMode or GSR.DummyTTDMode == 1 then
-            if (not GS.TTD[unit] or GS.TTD[unit] == 200) then GS.TTD[unit] = 4 return else GS.TTD[unit] = 200 return end
-        elseif GSR.DummyTTDMode == 2 then
-            GS.TTD[unit] = 4
+    if tContains(animalsTable.Dummies, UnitName(unit)) then
+        if not animalsDataPerChar.dummyTTDMode or animalsDataPerChar.dummyTTDMode == 1 then
+            if (not animalsTable.TTD[unit] or animalsTable.TTD[unit] == 200) then animalsTable.TTD[unit] = 4 return else animalsTable.TTD[unit] = 200 return end
+        elseif animalsDataPerChar.dummyTTDMode == 2 then
+            animalsTable.TTD[unit] = 4
             return
         else
-            GS.TTD[unit] = 200
+            animalsTable.TTD[unit] = 200
             return
         end
     end
 
     -- if health = 0 then set time to death to negative
-    if GS.Health(unit) == 0 then GS.TTD[unit] = -1 return end
+    if animalsTable.Health(unit) == 0 then animalsTable.TTD[unit] = -1 return end
 
     -- Query current time (throttle updating over time)
     local nTime = GetTime()
-    if not GS.TTDM[unit] or nTime - GS.TTDM[unit].nLastScan >= nScanThrottle then
+    if not animalsTable.TTDM[unit] or nTime - animalsTable.TTDM[unit].nLastScan >= nScanThrottle then
         -- Current data
-        local data = GS.Health(unit)
+        local data = animalsTable.Health(unit)
 
-        if not GS.TTDM[unit] then GS.TTDM[unit] = {start = nTime, index = 1, maxvalue = GS.Health(unit, max)/2, values = {}, nLastScan = nTime, estimate = nil} end
+        if not animalsTable.TTDM[unit] then animalsTable.TTDM[unit] = {start = nTime, index = 1, maxvalue = animalsTable.Health(unit, max)/2, values = {}, nLastScan = nTime, estimate = nil} end
 
         -- Remember current time
-        GS.TTDM[unit].nLastScan = nTime
+        animalsTable.TTDM[unit].nLastScan = nTime
 
-        if GS.TTDM[unit].index > nMaxSamples then GS.TTDM[unit].index = 1 end
+        if animalsTable.TTDM[unit].index > nMaxSamples then animalsTable.TTDM[unit].index = 1 end
         -- Save new data (Use relative values to prevent "overflow")
-        GS.TTDM[unit].values[GS.TTDM[unit].index] = {dmg = data - GS.TTDM[unit].maxvalue, time = nTime - GS.TTDM[unit].start}
+        animalsTable.TTDM[unit].values[animalsTable.TTDM[unit].index] = {dmg = data - animalsTable.TTDM[unit].maxvalue, time = nTime - animalsTable.TTDM[unit].start}
 
-        if #GS.TTDM[unit].values >= 2 then
+        if #animalsTable.TTDM[unit].values >= 2 then
             -- Estimation variables
             local SS_xy, SS_xx, x_M, y_M = 0, 0, 0, 0
 
             -- Calc pre-solution values
-            for i = 1, #GS.TTDM[unit].values do
-                z = GS.TTDM[unit].values[i]
+            for i = 1, #animalsTable.TTDM[unit].values do
+                z = animalsTable.TTDM[unit].values[i]
                 -- Calc mean value
-                x_M = x_M + z.time / #GS.TTDM[unit].values
-                y_M = y_M + z.dmg / #GS.TTDM[unit].values
+                x_M = x_M + z.time / #animalsTable.TTDM[unit].values
+                y_M = y_M + z.dmg / #animalsTable.TTDM[unit].values
 
                 -- Calc sum of squares
                 SS_xx = SS_xx + z.time * z.time
                 SS_xy = SS_xy + z.time * z.dmg
             end
-            -- for i = 1, #GS.TTDM[unit].values do
+            -- for i = 1, #animalsTable.TTDM[unit].values do
             --     -- Calc mean value
-            --     x_M = x_M + GS.TTDM[unit].values[i].time / #GS.TTDM[unit].values
-            --     y_M = y_M + GS.TTDM[unit].values[i].dmg / #GS.TTDM[unit].values
+            --     x_M = x_M + animalsTable.TTDM[unit].values[i].time / #animalsTable.TTDM[unit].values
+            --     y_M = y_M + animalsTable.TTDM[unit].values[i].dmg / #animalsTable.TTDM[unit].values
 
             --     -- Calc sum of squares
-            --     SS_xx = SS_xx + GS.TTDM[unit].values[i].time * GS.TTDM[unit].values[i].time
-            --     SS_xy = SS_xy + GS.TTDM[unit].values[i].time * GS.TTDM[unit].values[i].dmg
+            --     SS_xx = SS_xx + animalsTable.TTDM[unit].values[i].time * animalsTable.TTDM[unit].values[i].time
+            --     SS_xy = SS_xy + animalsTable.TTDM[unit].values[i].time * animalsTable.TTDM[unit].values[i].dmg
             -- end
 
             -- Few last addition to mean value / sum of squares
-            SS_xx = SS_xx - #GS.TTDM[unit].values * x_M * x_M
-            SS_xy = SS_xy - #GS.TTDM[unit].values * x_M * y_M
+            SS_xx = SS_xx - #animalsTable.TTDM[unit].values * x_M * x_M
+            SS_xy = SS_xy - #animalsTable.TTDM[unit].values * x_M * y_M
 
             -- Results
             local a_0, a_1, x = 0, 0, 0
@@ -119,30 +119,30 @@ function GS.TTDF(unit) -- keep updated: see if this can be optimized
             a_0 = y_M - a_1 * x_M
 
             -- Find zero-point (Switch back to absolute values)
-            a_0 = a_0 + GS.TTDM[unit].maxvalue
+            a_0 = a_0 + animalsTable.TTDM[unit].maxvalue
             x = - (a_0 / a_1)
 
             -- Valid/Usable solution
             if a_1 and a_1 < 1 and a_0 and a_0 > 0 and x and x > 0 then
-                GS.TTDM[unit].estimate = x + GS.TTDM[unit].start
+                animalsTable.TTDM[unit].estimate = x + animalsTable.TTDM[unit].start
                 -- Fallback
             else
-                GS.TTDM[unit].estimate = nil
+                animalsTable.TTDM[unit].estimate = nil
             end
 
             -- Not enough data
         else
-            GS.TTDM[unit].estimate = nil
+            animalsTable.TTDM[unit].estimate = nil
         end
-        GS.TTDM[unit].index = GS.TTDM[unit].index + 1 -- enable
+        animalsTable.TTDM[unit].index = animalsTable.TTDM[unit].index + 1 -- enable
     end
 
-    if not GS.TTDM[unit].estimate then
-        GS.TTD[unit] = math.huge
-    elseif nTime > GS.TTDM[unit].estimate then
-        GS.TTD[unit] = -1
+    if not animalsTable.TTDM[unit].estimate then
+        animalsTable.TTD[unit] = math.huge
+    elseif nTime > animalsTable.TTDM[unit].estimate then
+        animalsTable.TTD[unit] = -1
     else
-        GS.TTD[unit] = GS.TTDM[unit].estimate-nTime
+        animalsTable.TTD[unit] = animalsTable.TTDM[unit].estimate-nTime
     end
 end
 -- ripped from CommanderSirow of the wowace forums

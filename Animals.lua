@@ -4,7 +4,6 @@ local animalsName, animalsTable = ...
 local _ = nil
 
 animalsDataPerChar = animalsDataPerChar or {Log = false}
-if not animalsDataPerChar.class then animalsDataPerChar.class = select(2, UnitClass("player")) end
 animalsGlobal = {}
 
 animalsTable.debugTable = {}
@@ -36,6 +35,7 @@ end
 
 function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player_entering_world and loading_screen_disabled
 	if originalEvent == "PLAYER_ENTERING_WORLD" then
+		if not animalsDataPerChar.class then animalsDataPerChar.class = select(2, UnitClass("player")) end
 		animalsTable.preventSlaying = true
 		animalsTable.targetAnimals = {}
 		animalsTable.targetHumans = {}
@@ -118,7 +118,7 @@ function animalsTable.startSlaying()
 		if not ReadFile(GetWoWDirectory().."\\Interface\\Addons\\Animals\\animalsVersion.txt") then
 			print("Animals: No animalsVersion.txt found.")
 		else
-		    DownloadURL("raw.githubusercontent.com", "/g1zstar/GStar-Rotations/master/Revision.txt", true, animalsTable.checkUpdate, animalsTable.revisionCheckFailed)
+		    DownloadURL("raw.githubusercontent.com", "/g1zstar/Animals/master/animalsVersion.txt", true, animalsTable.checkUpdate, animalsTable.revisionCheckFailed)
 		end
 		animalsTable.ranOnce = true
 	end
@@ -126,11 +126,14 @@ function animalsTable.startSlaying()
 	if animalsTable.currentSpec and animalsTable[animalsDataPerChar.class..animalsTable.currentSpec] then
 		animalsTable.iterationNumer = animalsTable.iterationNumer +1
 		animalsTable[animalsDataPerChar.class..animalsTable.currentSpec]()
-	elseif animalsTable[animalsDataPerChar.class] then
+	elseif animalsTable[animalsDataPerChar.class..9] then
 		animalsTable.iterationNumer = animalsTable.iterationNumer + 1
 		animalsTable[animalsDataPerChar.class]()
 	else
 		print("Animals: No idea how to slay with this combination.")
+		animalsTable.allowSlaying = false
+		animalsTable.monitorAnimationToggle("off")
+
 	end
 end
 
