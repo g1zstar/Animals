@@ -28,8 +28,8 @@ end
 function animalsTable.logToFile(message)
     if animalsDataPerChar.log then
         local file = ReadFile(animalsTable.logFile)
-        -- local debugStack = string.gsub(debugstack(2, 100, 100), '%[string "local function GetScriptName %(%) return "gst..."%]', "line")
-        -- debugStack = string.gsub(debugStack, "\n", ", ")
+        local debugStack = string.gsub(debugstack(2, 100, 100), 'Interface\\AddOns\\Animals\\.-(%w+)%.lua', "file: %1, line")
+        debugStack = string.gsub(debugStack, "\n", ", ")
         WriteFile(animalsTable.logFile, file..",\n{\n\t"..message.."\n\t\"time\":"..GetTime()..",\n\t\"Line Number\": "..debugStack.."\n}")
     end
 end
@@ -52,7 +52,7 @@ function animalsTable.TTDF(unit) -- keep updated: see if this can be optimized
     end
 
     -- Training Dummy alternate between 4 and 200 for cooldowns
-    if tContains(animalsTable.Dummies, UnitName(unit)) then
+    if tContains(animalsTable.dummiesID, animalsTable.getUnitID(unit)) then
         if not animalsDataPerChar.dummyTTDMode or animalsDataPerChar.dummyTTDMode == 1 then
             if (not animalsTable.TTD[unit] or animalsTable.TTD[unit] == 200) then animalsTable.TTD[unit] = 4 return else animalsTable.TTD[unit] = 200 return end
         elseif animalsDataPerChar.dummyTTDMode == 2 then
@@ -64,8 +64,7 @@ function animalsTable.TTDF(unit) -- keep updated: see if this can be optimized
         end
     end
 
-    -- if health = 0 then set time to death to negative
-    if animalsTable.health(unit) == 0 then animalsTable.TTD[unit] = -1 return end
+    if not ObjectExists(unit) or not UnitExists(unit) or animalsTable.health(unit) == 0 then animalsTable.TTD[unit] = -1 return end
 
     -- Query current time (throttle updating over time)
     local nTime = GetTime()

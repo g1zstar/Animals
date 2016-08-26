@@ -1,6 +1,8 @@
 local animalsName, animalsTable = ...
 local _ = nil
 
+local rotationUnitIterator = nil
+
 animalsTable.MONK = {
 	lastCast = 0,
 	soothingMistTarget = "",
@@ -60,6 +62,7 @@ do -- Windwalker
 	local energizing_elixir           = 115288
 	local fists_of_fury               = 113656
 	local invoke_xuen_the_white_tiger = 123904
+	local mark_of_the_crane           = 228287
 	local rising_sun_kick             = 107428
 	local rushing_jade_wind           = 116847
 	local serenity                    = 152173
@@ -103,11 +106,33 @@ do -- Windwalker
 			        if animalsTable.spellCanAttack(tiger_palm) and not animalsTable.aura("player", serenity) and chi() <= 2 and (animalsTable.MONK.lastCast ~= tiger_palm) then animalsTable.cast(_, tiger_palm, _, _, _, _, "Tiger Palm") return end
 			    else -- AoE
 			        if animalsTable.spellIsReady(spinning_crane_kick) and animalsTable.MONK.lastCast ~= spinning_crane_kick then animalsTable.cast(_, spinning_crane_kick, _, _, _, _, "Spinning Crane Kick") return end
-			        -- actions.aoe+=/strike_of_the_windlord
-			        if animalsTable.talent61 and animalsTable.spellIsReady(rushing_jade_wind) and chi() >= 2 and animalsTable.MONK.lastCast ~= rushing_jade_wind then animalsTable.cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind") return end
+			        if animalsTable.spellIsReady(rising_sun_kick) then
+			        	if animalsTable.spellCanAttack(rising_sun_kick) and not animalsTable.aura("target", mark_of_the_crane, "", "PLAYER") then animalsTable.cast(_, rising_sun_kick, _, _, _, _, "Rising Sun Kick: AoE Mark of the Crane") return end
+			        	for i = 1, animalsTable.animalsSize do
+			        		rotationUnitIterator = animalsTable.targetAnimals[i]
+			        		if animalsTable.spellCanAttack(rising_sun_kick, rotationUnitIterator) and not animalsTable.aura(rotationUnitIterator, mark_of_the_crane, "", "PLAYER") then animalsTable.cast(rotationUnitIterator, rising_sun_kick, _, _, _, _, "Rising Sun Kick: AoE Mark of the Crane") return end
+			        	end
+			        	if animalsTable.spellCanAttack(rising_sun_kick) then animalsTable.cast(_, rising_sun_kick, _, _, _, _, "Rising Sun Kick: AoE") return end
+			        end
+			        if animalsTable.talent61 and animalsTable.spellIsReady(rushing_jade_wind) and chi() > 1 and animalsTable.MONK.lastCast ~= rushing_jade_wind then animalsTable.cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind") return end
 			        if animalsTable.talent13 and animalsTable.spellCanAttack(chi_wave) and (((energy("deficit"))/GetPowerRegen()) > 2 or not animalsTable.aura("player", serenity)) then animalsTable.cast(_, chi_wave, _, _, _, _, "Chi Wave") return end
 			        if animalsTable.talent11 and animalsTable.spellIsReady(chi_burst) and (energy("deficit")/GetPowerRegen() > 2 or not animalsTable.aura("player", serenity)) then animalsTable.cast("target", chi_burst, false, false, false, "SpellToInterrupt", "Chi Burst") return end
-			        if animalsTable.spellCanAttack(tiger_palm) and not animalsTable.aura("player", serenity) and chi() <= 2 and animalsTable.MONK.lastCast ~= tiger_palm then animalsTable.cast(_, tiger_palm, _, _, _, _, "Tiger Palm") return end
+			        if animalsTable.spellIsReady(blackout_kick) and (chi() > 1 or animalsTable.aura("player", blackout_kick_combo)) and animalsTable.MONK.lastCast ~= blackout_kick then
+			        	if animalsTable.spellCanAttack(blackout_kick) and not animalsTable.aura("target", mark_of_the_crane, "", "PLAYER") then animalsTable.cast(_, blackout_kick, _, _, _, _, "Blackout Kick: AoE Mark of the Crane") return end
+			        	for i = 1, animalsTable.animalsSize do
+			        		rotationUnitIterator = animalsTable.targetAnimals[i]
+			        		if animalsTable.spellCanAttack(blackout_kick, rotationUnitIterator) and not animalsTable.aura(rotationUnitIterator, mark_of_the_crane, "", "PLAYER") then animalsTable.cast(rotationUnitIterator, blackout_kick, _, _, _, _, "Blackout Kick: AoE Mark of the Crane") return end
+			        	end
+			        	if animalsTable.spellCanAttack(blackout_kick) then animalsTable.cast(_, blackout_kick, _, _, _, _, "Blackout Kick: AoE") return end
+			        end
+			        if animalsTable.spellIsReady(tiger_palm) and not animalsTable.aura("player", serenity) and chi("deficit") > 1 and animalsTable.MONK.lastCast ~= tiger_palm then
+				        if animalsTable.spellCanAttack(tiger_palm) and not animalsTable.aura("target", mark_of_the_crane, "", "PLAYER") then animalsTable.cast(_, tiger_palm, _, _, _, _, "Tiger Palm: AoE Mark of the Crane") return end
+				        for i = 1, animalsTable.animalsSize do
+				        	rotationUnitIterator = animalsTable.targetAnimals[i]
+				        	if animalsTable.spellCanAttack(tiger_palm, rotationUnitIterator) and not animalsTable.aura(rotationUnitIterator, mark_of_the_crane, "", "PLAYER") then animalsTable.cast(rotationUnitIterator, tiger_palm, _, _, _, _, "Tiger Palm: AoE Mark of the Crane") return end
+				        end
+				        if animalsTable.spellCanAttack(tiger_palm) then animalsTable.cast(_, tiger_palm, _, _, _, _, "Tiger Palm: AoE") return end
+			        end
 			    end
 			    -- actions.opener=blood_fury
 			    -- actions.opener+=/berserking

@@ -6,8 +6,8 @@ animalsDataPerChar = animalsDataPerChar or {Log = false}
 animalsTable.logFile = "C:\\Garrison.json"
 
 if not animalsDataPerChar.chaosMin then
-	animalsDataPerChar.chaosMin = 20
-	animalsDataPerChar.chaosMax = 60
+	animalsDataPerChar.chaosMin = -20
+	animalsDataPerChar.chaosMax = 40
 end
 
 animalsTable.skipLoS = {
@@ -46,8 +46,7 @@ animalsTable.spellsThatInterrupt["Grom'kar Firemender"] = 0
 animalsTable.spellsThatInterrupt["Blade Dancer Illianna"] = 0
 
 -- todo: populate with boss IDs
-animalsTable.bossList = {
-
+animalsTable.bossIDList = {
 }
 -- todo: should healing/tanking/instance dummies be under this?
 animalsTable.dummiesID = {
@@ -132,7 +131,7 @@ animalsTable.dummiesID = {
         -- 114832, -- ??? PvP Training Dummy
         -- 114840, -- ??? PvP Training Dummy
 }
-animalsTable.Dummies = {
+animalsTable.dummiesName = {
     "Training Bag",
     "Training Dummy",
     "Dungeoneer's Training Dummy",

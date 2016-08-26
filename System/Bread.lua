@@ -4,12 +4,12 @@ local _ = nil
 do -- Combat Check Functions
     function animalsTable.validAnimal(unit)
         if not unit then unit = "target" end
-        if ObjectExists("target")
-        and UnitExists("target")
-        and UnitCanAttack("player", "target")
-        -- and (animalsTable.health("target") > 1 or tContains(animalsTable.Dummies, UnitName("target")))
-        -- and animalsTable.animalsAuraBlacklist("target")
-        -- and (not animalsDataPerChar.cced or not animalsTable.unitIsCCed("target"))
+        if ObjectExists(unit)
+        and UnitExists(unit)
+        and UnitCanAttack("player", unit)
+        and (animalsTable.health(unit) > 1 or tContains(animalsTable.dummiesID, animalsTable.getUnitID(unit)))
+        and animalsTable.animalsAuraBlacklist(unit)
+        and (not animalsDataPerChar.cced or not animalsTable.unitIsCCed(unit))
         then
             return true
         else
@@ -58,7 +58,7 @@ do -- Unit Functions
     function animalsTable.animalIsBoss(unit)
         if not unit then unit = "target" end
         if ObjectExists(unit) and UnitExists(unit) then
-            if tContains(animalsTable.BossList, animalsTable.getUnitID(unit)) then
+            if tContains(animalsTable.bossIDList, animalsTable.getUnitID(unit)) then
                 return true
             else
                 return false
@@ -68,10 +68,10 @@ do -- Unit Functions
         end
     end
 
-    function animalsTable.LOS(guid, other, increase)
+    function animalsTable.los(guid, other, increase)
         other = other or "player"
         if not ObjectExists(guid) then return false end
-        if tContains(animalsTable.SkipLoS, animalsTable.getUnitID(guid)) or tContains(animalsTable.SkipLoS, animalsTable.getUnitID(other)) then return true end
+        if tContains(animalsTable.skipLoS, animalsTable.getUnitID(guid)) or tContains(animalsTable.skipLoS, animalsTable.getUnitID(other)) then return true end
         local X1, Y1, Z1 = ObjectPosition(guid)
         local X2, Y2, Z2 = ObjectPosition(other)
         return not TraceLine(X1, Y1, Z1  + (increase or 2), X2, Y2, Z2 + (increase or 2), 0x10);
@@ -79,6 +79,7 @@ do -- Unit Functions
 
     function animalsTable.getTTD(guid)
         if not guid then guid = "target" end
+        if not ObjectExists(guid) or not UnitExists(guid) then return math.huge end
         return animalsTable.TTD[ObjectPointer(guid)] or math.huge
     end
 
@@ -108,7 +109,7 @@ do -- Spell Functions
 
     local spellNotKnown = {}
     local spellKnownTransformTable = {
-            [106830] = 106832
+            [106830] = 106832,
     }
     function animalsTable.spellIsReady(spell, execute)
         if type(spell) ~= "string" and type(spell) ~= "number" then return false end
@@ -121,9 +122,9 @@ do -- Spell Functions
             return false
         end
         -- if (type(spell) == "number" and GetSpellInfo(GetSpellInfo(spell)) or type(spell) == "string" and GetSpellLink(spell) or IsSpellKnown(spell) or spell == 77758 --[[or UnitLevel("player") == 100]]) -- thrash bear
-        --[[and]] --[[if]]if animalsTable.spellCDDuration(spell) <= 0
-        and (execute and animalsTable.SpellIsUsableExecute(spell) or animalsTable.SpellIsUsable(spell))
-        and (not animalsDataPerChar.thok or animalsTable.ThokThrottle < GetTime() or select(4, GetSpellInfo(spell)) <= 0 or animalsTable.ThokThrottle > GetTime()+(select(4, GetSpellInfo(spell))*0.001)) -- bottom aurar are ice floes , Kil'jaedens cunning, spiritwalker's grace
+        --[[and]] --[[if]]if (--[[animalsTable.spellCDDuration(61304) > 0 and ]]animalsTable.spellCDDuration(spell) <= select(4, GetNetStats())*.001+animalsTable.randomNumberGenerator)
+        and (execute and animalsTable.spellIsUsableExecute(spell) or animalsTable.spellIsUsable(spell))
+        and (not animalsDataPerChar.thok or animalsTable.thokThrottle < GetTime() or select(4, GetSpellInfo(spell)) <= 0 or animalsTable.thokThrottle > GetTime()+(select(4, GetSpellInfo(spell))*0.001)) -- bottom aurar are ice floes , Kil'jaedens cunning, spiritwalker's grace
         and (UnitMovementFlags("player") == 0 or select(4, GetSpellInfo(spell)) <= 0 or spell == 77767 or spell == 56641 or spell == aimed_shot or spell == 2948 or not animalsTable.auraRemaining("player", 108839, (select(4, GetSpellInfo(spell))*0.001)) or not animalsTable.auraRemaining("player", 79206, (select(4, GetSpellInfo(spell))*0.001)))
         -- Ice Floes, SpiritWalker's Grace
         then
@@ -135,15 +136,14 @@ do -- Spell Functions
 
     function animalsTable.spellCanAttack(spell, unit, casting, execute)
         if not unit then unit = "target" end
-        if not ObjectExists(unit) or not UnitExists(unit) then return false end
         if string.sub(unit, 1, 6) == "Player" then unit = ObjectPointer("player") end
-        if UnitExists(unit)
-        and animalsTable.spellIsReady(spell, execute)
-        and (animalsTable.InRange(spell, unit) or UnitName(unit) == "Al'Akir") -- fixme: inrange needs an overhaul in the distant future, example Al'Akir @framework @notimportant
-        and (not animalsTable.isCAOCH("player") or casting--[[ and UnitChannelInfo("player") ~= GetSpellInfo(spell) and UnitCastingInfo("player") ~= GetSpellInfo(spell)]])
-        and (not animalsDataPerChar.thok or animalsTable.ThokThrottle < GetTime() or animalsTable.ThokThrottle > GetTime()+(select(4, GetSpellInfo(spell))*0.001))
-        and (not animalsDataPerChar.los or animalsTable.LOS(unit)) -- fixme: LOS @framework
-        and (not animalsDataPerChar.cced or not animalsTable.UnitIsCCed(unit))
+        if not ObjectExists(unit) or not UnitExists(unit) then return false end
+        if animalsTable.spellIsReady(spell, execute)
+        and (animalsTable.inRange(spell, unit) or UnitName(unit) == "Al'Akir") -- fixme: inrange needs an overhaul in the distant future, example Al'Akir @framework @notimportant
+        and (not animalsTable.isCAOCH("player") or UnitCastingInfo("player") and (select(6, UnitCastingInfo("player"))/1000-GetTime()) <= select(4, GetNetStats()*.001+animalsTable.randomNumberGenerator) or casting--[[ and UnitChannelInfo("player") ~= GetSpellInfo(spell) and UnitCastingInfo("player") ~= GetSpellInfo(spell)]])
+        and (not animalsDataPerChar.thok or animalsTable.thokThrottle < GetTime() or animalsTable.thokThrottle > GetTime()+(select(4, GetSpellInfo(spell))*0.001))
+        and (not animalsDataPerChar.los or animalsTable.los(unit))
+        and (not animalsDataPerChar.cced or not animalsTable.unitIsCCed(unit))
         then
             return true
         else
@@ -151,7 +151,7 @@ do -- Spell Functions
         end
     end
 
-    function animalsTable.SpellIsUsable(spell)
+    function animalsTable.spellIsUsable(spell)
         local isUsable, notEnoughMana = IsUsableSpell(spell)
         if isUsable and not notEnoughMana then
             return true
@@ -160,7 +160,7 @@ do -- Spell Functions
         end
     end
 
-    function animalsTable.SpellIsUsableExecute(spell)
+    function animalsTable.spellIsUsableExecute(spell)
         local isUsable, notEnoughMana = IsUsableSpell(spell)
         if not notEnoughMana then
             return true
@@ -169,9 +169,9 @@ do -- Spell Functions
         end
     end
 
-    function animalsTable.PoolCheck(spell)
+    function animalsTable.poolCheck(spell)
         local isUsable, notEnoughMana = IsUsableSpell(spell)
-        if animalsTable.SpellCDDuration(spell) <= 0
+        if animalsTable.spellCDDuration(spell) <= 0
         and not isUsable
         and notEnoughMana
         then
@@ -182,7 +182,7 @@ do -- Spell Functions
     end
 
     local spellOutranged = {}
-    function animalsTable.InRange(spell, unit)
+    function animalsTable.inRange(spell, unit)
         if not unit then unit = "target" end
         local spellToString
 
@@ -199,14 +199,14 @@ do -- Spell Functions
                     animalsTable.logToFile("Spell out of Range: "..spell.." Please Verify.")
                 end
                 return false
-            elseif (tContains(animalsTable.SpellData.SpellNameRange, spellToString) or tContains(animalsTable.SpellData.SpellNameRange, "MM"..spellToString)) then
-                for i = 1, #animalsTable.SpellData.SpellNameRange do
-                    if animalsTable.SpellData.SpellNameRange[i] == spellToString then
-                        return animalsTable.Distance(unit) <= animalsTable.SpellData.SpellRange[i]
-                    elseif animalsTable.SpellData.SpellNameRange[i] == "MM"..spellToString then
-                        return animalsTable.Distance(unit) <= (animalsTable.SpellData.SpellRange[i]*(1+GetMasteryEffect()/100))
-                    end
-                end
+            -- elseif (tContains(animalsTable.SpellData.SpellNameRange, spellToString) or tContains(animalsTable.SpellData.SpellNameRange, "MM"..spellToString)) then
+            --     for i = 1, #animalsTable.SpellData.SpellNameRange do
+            --         if animalsTable.SpellData.SpellNameRange[i] == spellToString then
+            --             return animalsTable.distanceBetween(unit) <= animalsTable.SpellData.SpellRange[i]
+            --         elseif animalsTable.SpellData.SpellNameRange[i] == "MM"..spellToString then
+            --             return animalsTable.distanceBetween(unit) <= (animalsTable.SpellData.SpellRange[i]*(1+GetMasteryEffect()/100))
+            --         end
+            --     end
             -- elseif FindSpellBookSlotBySpellID(spell) then
             --     return IsSpellInRange(FindSpellBookSlotBySpellID(spell), "spell", unit) == 1
             else
@@ -231,7 +231,7 @@ do -- Spell Functions
         end
     end
 
-    function animalsTable.FracCalc(mode, spell)
+    function animalsTable.fracCalc(mode, spell)
         if mode == "spell" then
             local spellFrac = 0
             local cur, max, start, duration = GetSpellCharges(spell)
@@ -265,7 +265,7 @@ end
         end
     end
 
-    function animalsTable.PM() return UnitPower("player")/UnitPowerMax("player")*100 end -- return percentage of mana or default power
+    function animalsTable.pm() return UnitPower("player")/UnitPowerMax("player")*100 end -- return percentage of mana or default power
 
     function animalsTable.pp(mode) -- Returns Primary Resources, modes are max or deficit otherwise current, Excluding Chi and Combo Points Use animalsTable.CP(mode)
         local vPower = nil
@@ -293,12 +293,12 @@ end
         if mode == "max" then return UnitPowerMax("player", vPower) elseif mode == "deficit" then return (UnitPowerMax("player", vPower)-UnitPower("player", vPower)) else return UnitPower("player", vPower) end
     end
 
-    function animalsTable.GCD()
+    function animalsTable.globalCD()
         if animalsDataPerChar.class..animalsTable.currentSpec == "MONK3" then return 1 end
         return math.max((1.5/(1+GetHaste()*.01)), 0.75)
     end
 
-    function animalsTable.SimCSpellHaste()
+    function animalsTable.simCSpellHaste()
         return 1/(1+GetHaste()*.01)
     end
 
@@ -306,6 +306,9 @@ do -- Aura Functions
     local auraTable = {}
 
     function animalsTable.aura(guid, ...) -- Example animalsTable.aura("target", 1234, "", "PLAYER") everything past the 2nd argument is not required
+        if type(guid) == "string" and string.sub(guid, 1, 6) == "Player" then guid = "player" end
+        if not ObjectExists(guid) or not UnitExists(guid) then return false end
+
         for i = 1, select("#", ...) do
             auraTable[i] = select(i, ...)
         end
@@ -315,9 +318,6 @@ do -- Aura Functions
         end
 
         if type(auraTable[1]) == "number" then auraTable[1] = GetSpellInfo(auraTable[1]) end
-        if type(guid) == "string" and string.sub(guid, 1, 6) == "Player" then guid = "player" end
-
-        if not ObjectExists(guid) or not UnitExists(guid) then return false end
 
         -- return UnitBuff(guid, unpack(auraTable)) or UnitDebuff(guid, unpack(auraTable)) or UnitAura(guid, unpack(auraTable))
         if UnitBuff(guid, unpack(auraTable)) then return UnitBuff(guid, unpack(auraTable)) elseif UnitDebuff(guid, unpack(auraTable)) then return UnitDebuff(guid, unpack(auraTable)) else return UnitAura(guid, unpack(auraTable)) end
@@ -355,7 +355,7 @@ do -- Aura Functions
         end
     end
 
-    function animalsTable.Bloodlust(remaining)
+    function animalsTable.bloodlust(remaining)
         if remaining then
             return ((animalsTable.aura("player", 80353) and not animalsTable.auraRemaining("player", 80353, remaining))
                     or (animalsTable.aura("player", 2825) and not animalsTable.auraRemaining("player", 2825, remaining))
@@ -373,7 +373,7 @@ do -- Aura Functions
     end
 end
 
--- AoE Functions
+do -- AoE Functions
     function animalsTable.playerCount(yards, tapped, goal, mode, goal2)
         local GMobCount = 0
         local unitPlaceholder = nil
@@ -456,7 +456,7 @@ end
         return GMobCount
     end
 
-    function animalsTable.TargetCount(yards, tapped)
+    function animalsTable.targetCount(yards, tapped)
         if not ObjectExists("target") or not UnitExists("target") or UnitHealth("target") == 0 then return 0 end
 
         local GMobCount = 0
@@ -464,7 +464,7 @@ end
 
         for i = 1, animalsTable.animalsSize do
             unitPlaceholder = animalsTable.targetAnimals[i]
-            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.Distance(unitPlaceholder, "target") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(unitPlaceholder, "target") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
                 GMobCount = GMobCount + 1
             end
         end
@@ -472,7 +472,7 @@ end
         if GMobCount == 0 then return 1 else return GMobCount end
     end
 
-    function animalsTable.FocusCount(yards, tapped)
+    function animalsTable.focusCount(yards, tapped)
         if not ObjectExists("focus") or not UnitExists("focus") or UnitHealth("focus") == 0 then return 0 end
 
         local GMobCount = 0
@@ -480,7 +480,7 @@ end
 
         for i = 1, animalsTable.animalsSize do
             unitPlaceholder = animalsTable.targetAnimals[i]
-            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.Distance(unitPlaceholder, "focus") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(unitPlaceholder, "focus") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
                 GMobCount = GMobCount + 1
             end
         end
@@ -488,13 +488,15 @@ end
         return GMobCount
     end
 
-    function animalsTable.BeastCleaveCount(yards, tapped)
+    function animalsTable.beastCleaveCount(yards, tapped)
+        if not ObjectExists("pet") or not UnitExists("pet") or animalsTable.health("pet") == 0 then return 0 end
+
         local GMobCount = 0
         local unitPlaceholder = nil
 
         for i = 1, animalsTable.animalsSize do
             unitPlaceholder = animalsTable.targetAnimals[i]
-            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.Distance(unitPlaceholder, "pet") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(unitPlaceholder, "pet") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
                 GMobCount = GMobCount + 1
             end
         end
@@ -502,15 +504,15 @@ end
         return GMobCount
     end
 
-    function animalsTable.PullAllies(reach)
-        if animalsTable.AllyTargetsSize == 0 then return {} end
+    function animalsTable.pullAllies(reach)
+        if animalsTable.humansSize == 0 then return {} end
         local unitPlaceholder = nil
         local units = {}
         local unitsSize = 0
-        for i = 1, animalsTable.AllyTargetsSize do
-            unitPlaceholder = animalsTable.AllyTargets[i].Player
+        for i = 1, animalsTable.humansSize do
+            unitPlaceholder = animalsTable.targetHumans[i].Player
             if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) then
-                if animalsTable.Distance(unitPlaceholder) <= reach then
+                if animalsTable.distanceBetween(unitPlaceholder) <= reach then
                     units[unitsSize+1] = unitPlaceholder
                     unitsSize = unitsSize + 1
                 end
@@ -519,15 +521,15 @@ end
         return units
     end
 
-    function animalsTable.SmartAoEFriendly(reach, size, tableX)
-        local units = animalsTable.PullAllies(reach)
+    function animalsTable.smartAoEFriendly(reach, size, tableX)
+        local units = animalsTable.pullAllies(reach)
         local win = 0
         local winners = {}
         for _, enemy in ipairs(units) do
             local preliminary = {} -- new
             local neighbors = 0
             for _, neighbor in ipairs(units) do
-                if animalsTable.Distance(enemy, neighbor) <= size then
+                if animalsTable.distanceBetween(enemy, neighbor) <= size then
                     table.insert(preliminary, neighbor)
                     neighbors = neighbors + 1
                 end
@@ -539,10 +541,10 @@ end
             end
         end
         if tableX then return winners end
-        return animalsTable.AvgPosObjects(winners)
+        return animalsTable.avgPosObjects(winners)
     end
 
-    function animalsTable.PullEnemies(reach, tapped, combatreach) -- gets enemies in an AoE
+    function animalsTable.pullEnemies(reach, tapped, combatreach) -- gets enemies in an AoE
         if animalsTable.animalsSize == 0 then return {} end
         local unitPlaceholder = nil
         local units = {}
@@ -550,7 +552,7 @@ end
         for i = 1, animalsTable.animalsSize do
             unitPlaceholder = animalsTable.targetAnimals[i]
             if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) then
-                if animalsTable.Distance(unitPlaceholder) <= reach+(combatreach and UnitCombatReach(unitPlaceholder) or 0) and (not tapped or animalsTable.animalIsTappedByPlayer(unitPlaceholder) or tContains(animalsTable.Dummies, UnitName(unitPlaceholder))) then
+                if animalsTable.distanceBetween(unitPlaceholder) <= reach+(combatreach and UnitCombatReach(unitPlaceholder) or 0) and (not tapped or animalsTable.animalIsTappedByPlayer(unitPlaceholder) or tContains(animalsTable.dummiesID, animalsTable.getUnitID(unitPlaceholder))) then
                     units[unitsSize+1] = unitPlaceholder
                     unitsSize = unitsSize + 1
                 end
@@ -559,15 +561,15 @@ end
         return units
     end
 
-    function animalsTable.SmartAoE(reach, size, tapped, tableX) -- smart aoe placement --[[credits to phelps a.k.a doc|brown]]
-        local units = animalsTable.PullEnemies(reach, tapped)
+    function animalsTable.smartAoE(reach, size, tapped, tableX) -- smart aoe placement --[[credits to phelps a.k.a doc|brown]]
+        local units = animalsTable.pullEnemies(reach, tapped)
         local win = 0
         local winners = {}
         for _, enemy in ipairs(units) do
             local preliminary = {} -- new
             local neighbors = 0
             for _, neighbor in ipairs(units) do
-                if animalsTable.Distance(enemy, neighbor) <= size then
+                if animalsTable.distanceBetween(enemy, neighbor) <= size then
                     table.insert(preliminary, neighbor) -- new
                     neighbors = neighbors + 1
                 end
@@ -579,10 +581,10 @@ end
             end
         end
         if tableX then return winners end
-        return animalsTable.AvgPosObjects(winners)
-    end -- use it like this: animalsTable.Cast(nil, 104232, GSmartAoE(35, 8))
+        return animalsTable.avgPosObjects(winners)
+    end
 
-    function animalsTable.AvgPosObjects(table)
+    function animalsTable.avgPosObjects(table)
         local Total = #table;
         local X, Y, Z = 0, 0, 0;
 
@@ -605,53 +607,55 @@ end
         return X, Y, Z;
     end
 
-    function animalsTable.DoTCached(obj, table)
+    function animalsTable.dotCached(obj, table)
         local table1, table2 = "t"..table, "tNoObject"..table
-        if tContains(GS[table1], obj) or tContains(GS[table2], obj) then return false else return true end
+        if tContains(animalsTable[table1], obj) or tContains(animalsTable[table2], obj) then return false else return true end
     end
 
-    function animalsTable.MultiDoT(spell, range)
+    function animalsTable.multiDoT(spell, range)
         local unitPlaceholder = nil
-        local spelltable = string.gsub(spell, "%s", "")
-        spelltable = string.gsub(spelltable, ":", "")
+        local spelltable = string.gsub(spell, "[%s:]", "")
 
-        if not GS["tNoObject"..spelltable] then GS["tNoObject"..spelltable] = {} end
-        if not GS["t"..spelltable] then GS["t"..spelltable] = {} end
+        if not animalsTable["tNoObject"..spelltable] then animalsTable["tNoObject"..spelltable] = {} end
+        if not animalsTable["t"..spelltable] then animalsTable["t"..spelltable] = {} end
 
-        for i = #GS["tNoObject"..spelltable], 1, -1 do -- delete don't belong
-            unitPlaceholder = GS["tNoObject"..spelltable][i]
-            if not tContains(animalsTable.MobTargets, unitPlaceholder) or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or range and range < animalsTable.Distance(obj) then
-                table.remove(GS["tNoObject"..spelltable], i) -- preliminaries
+        for i = #animalsTable["tNoObject"..spelltable], 1, -1 do -- delete don't belong
+            unitPlaceholder = animalsTable["tNoObject"..spelltable][i]
+            if not tContains(animalsTable.targetAnimals, unitPlaceholder) or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or range and range < animalsTable.distanceBetween(obj) then
+                table.remove(animalsTable["tNoObject"..spelltable], i) -- preliminaries
             else -- check for aura
                 local name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
-                if name then table.remove(GS["tNoObject"..spelltable], i) end -- aura is there
+                if name then table.remove(animalsTable["tNoObject"..spelltable], i) end -- aura is there
             end
         end
-        for i = #GS["t"..spelltable], 1, -1 do -- delete don't belong
-            unitPlaceholder = GS["t"..spelltable][i]
-            if not tContains(animalsTable.MobTargets, unitPlaceholder) or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or range and range < animalsTable.Distance(unitPlaceholder) then table.remove(GS["t"..spelltable], i) -- preliminaries
+        for i = #animalsTable["t"..spelltable], 1, -1 do -- delete don't belong
+            unitPlaceholder = animalsTable["t"..spelltable][i]
+            if not tContains(animalsTable.targetAnimals, unitPlaceholder) or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or range and range < animalsTable.distanceBetween(unitPlaceholder) then table.remove(animalsTable["t"..spelltable], i) -- preliminaries
             else
                 local name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
-                if not name then table.remove(GS["t"..spelltable], i) end -- aura is not there
+                if not name then table.remove(animalsTable["t"..spelltable], i) end -- aura is not there
             end
         end
 
-        for i = 1, #animalsTable.MobTargets do
+        local unitPlaceholder = nil
+        for i = 1, animalsTable.animalsSize do
             unitPlaceholder = animalsTable.targetAnimals[i]
             if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) then
-                local unitPlaceholder = animalsTable.targetAnimals[i]
-                if animalsTable.DoTCached(unitPlaceholder, spelltable)
-                and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or tContains(animalsTable.Dummies, UnitName(unitPlaceholder)))
-                and (not range or range >= animalsTable.Distance(unitPlaceholder)+animalsTable.CombatReach(unitPlaceholder)) then
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if animalsTable.dotCached(unitPlaceholder, spelltable)
+                and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or tContains(animalsTable.dummiesID, animalsTable.getUnitID(unitPlaceholder)))
+                and (not range or range >= animalsTable.distanceBetween(unitPlaceholder)+UnitCombatReach(unitPlaceholder)) then
                     local name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
-                    if name then table.insert(GS["t"..spelltable], unitPlaceholder) end
-                    if not name and --[[animalsTable.Distance(unitPlaceholder) <= 50 and ]]UnitCanAttack("player", unitPlaceholder) --[[and animalsTable.LOS(unitPlaceholder)]] then table.insert(GS["tNoObject"..spelltable], unitPlaceholder) end -- fixme: LOS @framework
+                    if name then table.insert(animalsTable["t"..spelltable], unitPlaceholder) end
+                    if not name and --[[animalsTable.distanceBetween(unitPlaceholder) <= 50 and ]]UnitCanAttack("player", unitPlaceholder) --[[and animalsTable.los(unitPlaceholder)]] then table.insert(animalsTable["tNoObject"..spelltable], unitPlaceholder) end
                 end
             end
         end
     end
+end
 
--- Cast Functions
+do -- Cast Functions
+    local file, tempStr = "", ""
     function animalsTable.cast(guid, Name, x, y, z, interrupt, reason)
         if animalsTable.waitForCombatLog then return end
         local name = Name
@@ -664,11 +668,11 @@ end
                 if interrupt == "chain" and spell == Name then animalsTable.logToFile("Going to Chain.") end
                 if spell == interrupt then SpellStopCasting() end
                 if interrupt == "nextTick" then
-                    animalsTable.InterruptNextTick = spell
+                    animalsTable.interruptNextTick = spell
                     return
                 end
                 if ("nextTick "..spell) == interrupt then
-                    animalsTable.InterruptNextTick = string.gsub(interrupt, "nextTick ", "")
+                    animalsTable.interruptNextTick = string.gsub(interrupt, "nextTick ", "")
                     return
                 end
             elseif type(interrupt) == "table" then
@@ -731,12 +735,13 @@ end
         animalsTable.debugTable["time"] = GetTime()
         animalsTable.debugTable["reason"] = reason or "N/A"
         if animalsDataPerChar.log then
-            animalsTable.File = ReadFile("C:\\Garrison.json")
-            animalsTable.tempStr = json.encode(animalsTable.debugTable, {indent=true})
-            WriteFile("C:\\Garrison.json", animalsTable.File..",\n"..animalsTable.tempStr)
+            file = ReadFile("C:\\Garrison.json")
+            tempStr = json.encode(animalsTable.debugTable, {indent=true})
+            WriteFile("C:\\Garrison.json", file..",\n"..tempStr)
         end
         animalsTable.waitForCombatLog = true
         animalsTable.interruptNextTick = nil
         animalsTable.toggleLog = true
         return true
     end
+end

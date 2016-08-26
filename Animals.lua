@@ -12,6 +12,7 @@ animalsTable.throttleSlaying = 0
 animalsTable.waitForCombatLog = false
 animalsTable.iterationNumer = 0
 animalsTable.toggleLog = true
+animalsTable.thokThrottle = 0
 
 for i = 1, 7 do
 	for o = 1, 3 do
@@ -98,12 +99,12 @@ function animalsTable.cacheGear()
 			SocketInventoryItem(16)
 		end
 		for i, powerID in ipairs(C_ArtifactUI.GetPowers()) do
-			local spellID, costS, currentRankS, maxRankS, bonusRanksS, x, y, prereqsMet, isStart, isGoldMedal, isFinal = C_ArtifactUI.GetPowerInfo(powerID)
+			local spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal = C_ArtifactUI.GetPowerInfo(powerID)
 			animalsTable.artifactWeapon.weaponPerks.spellID = {
-				cost = costS,
-				currentRank = currentRankS,
-				maxRank = maxRankS,
-				bonusRanks = bonusRanksS
+				cost = perkCost,
+				currentRank = perkCurrentRank,
+				maxRank = perkMaxRank,
+				bonusRanks = perkBonusRanks,
 			}
 		end
 		if ArtifactFrame:IsShown() and closeAfter then HideUIPanel(ArtifactFrame) end
@@ -125,6 +126,8 @@ function animalsTable.startSlaying()
 		end
 		animalsTable.ranOnce = true
 	end
+
+	animalsTable.randomNumberGenerator = math.random(animalsDataPerChar.chaosMin, animalsDataPerChar.chaosMax)*.001
 
 	if animalsTable.currentSpec and animalsTable[animalsDataPerChar.class..animalsTable.currentSpec] then
 		animalsTable.iterationNumer = animalsTable.iterationNumer +1
@@ -263,12 +266,12 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	    if event == "SPELL_CAST_START" then
 	    elseif event == "SPELL_CAST_FAILED" then
 	        if animalsTable.waitForCombatLog then animalsTable.waitForCombatLog = false end
-	        animalsTable.throttleSlaying = 0
+	        -- animalsTable.throttleSlaying = 0
 	        animalsTable.logToFile(spellName..": Unthrottling "..failedType)
 	        return
 	    elseif event == "SPELL_CAST_SUCCESS" then 
 	        if animalsTable.waitForCombatLog then animalsTable.waitForCombatLog = false end
-	        animalsTable.throttleSlaying = (GetTime()+math.random(animalsDataPerChar.chaosMin, animalsDataPerChar.chaosMax)*.001)+animalsTable.spellCDDuration(61304)
+	        -- animalsTable.throttleSlaying = (GetTime()+math.random(animalsDataPerChar.chaosMin, animalsDataPerChar.chaosMax)*.001)+animalsTable.spellCDDuration(61304)
 
 	        -- Monk
 	            if spellID == 115175 then
