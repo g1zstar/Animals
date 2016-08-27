@@ -38,7 +38,6 @@ function animalsTable.toggleCDs()
 end
 
 function animalsTable.toggleInterrupt()
-	animalsDataPerChar.interrupt = not animalsDataPerChar.interrupt
     animalsDataPerChar.interrupt = not animalsDataPerChar.interrupt
     print("GStar Rotations: Interrupt now "..(animalsDataPerChar.interrupt and "on" or "off")..".")
 end

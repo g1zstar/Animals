@@ -140,7 +140,7 @@ do -- Spell Functions
         if not ObjectExists(unit) or not UnitExists(unit) then return false end
         if animalsTable.spellIsReady(spell, execute)
         and (animalsTable.inRange(spell, unit) or UnitName(unit) == "Al'Akir") -- fixme: inrange needs an overhaul in the distant future, example Al'Akir @framework @notimportant
-        and (not animalsTable.isCAOCH("player") or UnitCastingInfo("player") and (select(6, UnitCastingInfo("player"))/1000-GetTime()) <= select(4, GetNetStats()*.001+animalsTable.randomNumberGenerator) or casting--[[ and UnitChannelInfo("player") ~= GetSpellInfo(spell) and UnitCastingInfo("player") ~= GetSpellInfo(spell)]])
+        and (not animalsTable.isCAOCH("player") --[[or UnitCastingInfo("player") and (select(6, UnitCastingInfo("player"))/1000-GetTime()) <= select(4, GetNetStats())*.001+animalsTable.randomNumberGenerator ]]or casting--[[ and UnitChannelInfo("player") ~= GetSpellInfo(spell) and UnitCastingInfo("player") ~= GetSpellInfo(spell)]])
         and (not animalsDataPerChar.thok or animalsTable.thokThrottle < GetTime() or animalsTable.thokThrottle > GetTime()+(select(4, GetSpellInfo(spell))*0.001))
         and (not animalsDataPerChar.los or animalsTable.los(unit))
         and (not animalsDataPerChar.cced or not animalsTable.unitIsCCed(unit))
@@ -282,7 +282,8 @@ end
         if animalsDataPerChar.class == "DRUID" and animalsTable.currentSpec == 1 then vPower = 8 end -- Astral Power
         if animalsDataPerChar.class == "DRUID" and animalsTable.currentSpec == 2 then vPower = 3 end -- Energy Use animalsTable.CP() for Combo Points
         if animalsDataPerChar.class == "DRUID" and animalsTable.currentSpec == 3 then vPower = 1 end -- Rage
-        -- DEMON HUNTER
+        if animalsDataPerChar.class == "DEMONHUNTER" and animalsTable.currentSpec == 1 then vPower = 17 end -- Fury
+        if animalsDataPerChar.class == "DEMONHUNTER" and animalsTable.currentSpec == 2 then vPower = 18 end -- Pain
         if animalsDataPerChar.class == "DEATHKNIGHT" then vPower = 6 end -- Runic Power
         if not vPower then vPower = 0 end
         if mode == "max" then return UnitPowerMax("player", vPower) elseif mode == "deficit" then return (UnitPowerMax("player", vPower)-UnitPower("player", vPower)) elseif mode == "tomax" then return (UnitPowerMax("player", vPower)-UnitPower("player", vPower))/GetPowerRegen() else return UnitPower("player", vPower) end
