@@ -22,6 +22,8 @@ function animalsTable.runDebug()
 end
 
 function animalsTable.toggleRun()
+    animalsTable.waitForCombatLog = false
+    SetHackEnabled("Fly", false)
     animalsTable.allowSlaying = not animalsTable.allowSlaying
     animalsTable.monitorAnimationToggle(animalsTable.allowSlaying and "on" or "off")
     print("GStar Rotations: "..(animalsTable.allowSlaying and "On" or "Off"))

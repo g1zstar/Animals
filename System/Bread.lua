@@ -318,6 +318,7 @@ do -- Aura Functions
             auraTable[i] = nil
         end
 
+        if auraTable[1] == 0 or auraTable[1] == "" then return false end
         if type(auraTable[1]) == "number" then auraTable[1] = GetSpellInfo(auraTable[1]) end
 
         -- return UnitBuff(guid, unpack(auraTable)) or UnitDebuff(guid, unpack(auraTable)) or UnitAura(guid, unpack(auraTable))

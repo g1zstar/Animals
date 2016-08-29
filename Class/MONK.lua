@@ -72,6 +72,8 @@ do -- Windwalker
 	local touch_of_death              = 115080
 	local whirling_dragon_punch       = 152175
 
+	local strike_of_the_windlord = 0
+
 	function animalsTable.MONK3()
 		if UnitAffectingCombat("player") then
 			if animalsTable.isCH() then return end
@@ -79,27 +81,27 @@ do -- Windwalker
 			    if animalsTable.cds then
 			        if animalsTable.talent62 and animalsTable.spellCanAttack(invoke_xuen_the_white_tiger) then animalsTable.cast(_, invoke_xuen_the_white_tiger, _, _, _, _, "Invoke Xuen, the White Tiger") return end
 			        -- actions+=/potion,name=deadly_grace,if=buff.serenity.up|buff.storm_earth_and_fire.up|(!talent.serenity.enabled&trinket.proc.agility.react)|buff.bloodlust.react|target.time_to_die<=60
-			        if animalsTable.spellCanAttack(touch_of_death) then animalsTable.cast(_, touch_of_death, _, _, _, _, "Touch of Death") return end
-			            -- actions+=/touch_of_death,if=!artifact.gale_burst.enabled
-			            -- actions+=/touch_of_death,if=artifact.gale_burst.enabled&cooldown.strike_of_the_windlord.remains<8&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
+			        if animalsTable.spellCanAttack(touch_of_death) --[[and not artifact.gale_burst.enabled]] then animalsTable.cast(_, touch_of_death, _, _, _, _, "Touch of Death") return end
+			        -- if animalsTable.spellCanAttack(touch_of_death) and artifact.gale_burst.enabled and animalsTable.spellCDDuration(strike_of_the_windlord) < 8 and animalsTable.spellCDDuration(fists_of_fury) <= 3 and animalsTable.spellCDDuration(rising_sun_kick) < 8 then animalsTable.cast(_, touch_of_death, _, _, _, _, "Touch of Death") return end
 			        if animalsTable.spellIsReady(blood_fury) then animalsTable.cast(_, blood_fury, _, _, _, _, "Blood Fury Orc Racial ASP") return end
 			        if animalsTable.spellIsReady(berserking) then animalsTable.cast(_, berserking, _, _, _, _, "Berserking Troll Racial") return end
 			        if animalsTable.spellIsReady(arcane_torrent) and chi("deficit") >= 1 then animalsTable.cast(_, arcane_torrent, _, _, _, _, "Arcane Torrent Belf Racial Monk") return end
-			        if not animalsTable.talent73 and animalsTable.spellIsReady(storm_earth_and_fire) and not animalsTable.aura("player", storm_earth_and_fire) and animalsTable.spellCDDuration(fists_of_fury) <= 9 and animalsTable.spellCDDuration(rising_sun_kick) <= 5 then animalsTable.cast(_, storm_earth_and_fire, _, _, _, _, "Storm, Earth, and Fire") return end
-			            -- actions+=/storm_earth_and_fire,if=artifact.strike_of_the_windlord.enabled&cooldown.strike_of_the_windlord.remains<14&cooldown.fists_of_fury.remains<=9&cooldown.rising_sun_kick.remains<=5
-			            -- actions+=/storm_earth_and_fire,if=!artifact.strike_of_the_windlord.enabled&cooldown.fists_of_fury.remains<=9&cooldown.rising_sun_kick.remains<=5
-			        if animalsTable.talent73 and animalsTable.spellIsReady(serenity) and chi() > 1 and animalsTable.spellCDDuration(fists_of_fury) <= 3 and animalsTable.spellCDDuration(rising_sun_kick) < 8 then animalsTable.cast(_, serenity, _, _, _, _, "Serenity") return end
-			            -- actions+=/serenity,if=artifact.strike_of_the_windlord.enabled&cooldown.strike_of_the_windlord.remains<7&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
-			            -- actions+=/serenity,if=!artifact.strike_of_the_windlord.enabled&cooldown.fists_of_fury.remains<=3&cooldown.rising_sun_kick.remains<8
+			        if not animalsTable.talent73 then
+			            if HasArtifactEquipped() and animalsTable.spellIsReady(storm_earth_and_fire) and not animalsTable.aura("player", storm_earth_and_fire) and animalsTable.spellCDDuration(strike_of_the_windlord) < 14 and animalsTable.spellCDDuration(fists_of_fury) <= 9 and animalsTable.spellCDDuration(rising_sun_kick) <= 5 then animalsTable.cast(_, storm_earth_and_fire, _, _, _, _, "Storm, Earth, and Fire") return end
+				        if not HasArtifactEquipped() and animalsTable.spellIsReady(storm_earth_and_fire) and not animalsTable.aura("player", storm_earth_and_fire) and animalsTable.spellCDDuration(fists_of_fury) <= 9 and animalsTable.spellCDDuration(rising_sun_kick) <= 5 then animalsTable.cast(_, storm_earth_and_fire, _, _, _, _, "Storm, Earth, and Fire") return end
+			        else
+			        	if HasArtifactEquipped() and animalsTable.spellIsReady(serenity) and chi() > 1 and animalsTable.spellCDDuration(strike_of_the_windlord) < 7 and animalsTable.spellCDDuration(fists_of_fury) <= 3 and animalsTable.spellCDDuration(rising_sun_kick) < 8 then animalsTable.cast(_, serenity, _, _, _, _, "Serenity") return end
+				        if not HasArtifactEquipped() and animalsTable.spellIsReady(serenity) and chi() > 1 and animalsTable.spellCDDuration(fists_of_fury) <= 3 and animalsTable.spellCDDuration(rising_sun_kick) < 8 then animalsTable.cast(_, serenity, _, _, _, _, "Serenity") return end
+			        end
 			    end
 			    if animalsTable.talent31 and animalsTable.spellIsReady(energizing_elixir) and energy("deficit") > 0 and chi() <= 1 and not animalsTable.aura("player", serenity) then animalsTable.cast(_, energizing_elixir, _, _, _, _, "Energizing Elixir") return end
-			    if animalsTable.talent61 and animalsTable.spellIsReady(rushing_jade_wind) and animalsTable.aura("player", serenity) and animalsTable.MONK.lastCast ~= rushing_jade_wind then animalsTable.cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind: Free Serenity") return end
-			    -- actions+=/strike_of_the_windlord
+			    if animalsTable.talent61 and animalsTable.spellIsReady(rushing_jade_wind) and animalsTable.distanceBetween() < 8+UnitCombatReach("target") and animalsTable.aura("player", serenity) and animalsTable.MONK.lastCast ~= rushing_jade_wind then animalsTable.cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind: Free Serenity") return end
+			    if HasArtifactEquipped() and animalsTable.spellCanAttack(strike_of_the_windlord) then animalsTable.cast(_, strike_of_the_windlord, _, _, _, _, "Strike of the Windlord") return end
 			    if animalsTable.talent72 and animalsTable.spellIsReady(whirling_dragon_punch) and not animalsTable.isCH() and animalsTable.distanceBetween("target") < 8+UnitCombatReach("target") then animalsTable.cast(_, whirling_dragon_punch, _, _, _, _, "Whirling Dragon Punch") return end
 			    if animalsTable.spellCanAttack(fists_of_fury) then animalsTable.cast(_, fists_of_fury, _, _, _, _, "Fists of Fury") return end
 			    if (not animalsTable.aoe or animalsTable.playerCount(8) < 3) then -- Single Target
 			        if animalsTable.spellCanAttack(rising_sun_kick) then animalsTable.cast(_, rising_sun_kick, _, _, _, _, "Rising Sun Kick") return end
-			        if animalsTable.talent61 and animalsTable.spellIsReady(rushing_jade_wind) and chi() > 1 and animalsTable.MONK.lastCast ~= rushing_jade_wind then animalsTable.cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind") return end
+			        if animalsTable.talent61 and animalsTable.spellIsReady(rushing_jade_wind) and animalsTable.distanceBetween() < 8+UnitCombatReach("target") and chi() > 1 and animalsTable.MONK.lastCast ~= rushing_jade_wind then animalsTable.cast(_, rushing_jade_wind, _, _, _, _, "Rushing Jade Wind") return end
 			        if animalsTable.talent13 and animalsTable.spellCanAttack(chi_wave) and (((energy("deficit"))/GetPowerRegen()) > 2 or not animalsTable.aura("player", serenity)) then animalsTable.cast(_, chi_wave, _, _, _, _, "Chi Wave") return end
 			        if animalsTable.talent11 and animalsTable.spellIsReady(chi_burst) and (energy("deficit")/GetPowerRegen() > 2 or not animalsTable.aura("player", serenity)) then animalsTable.cast("target", chi_burst, false, false, false, "SpellToInterrupt", "Chi Burst") return end
 			        if animalsTable.spellCanAttack(blackout_kick) and (chi() > 1 or animalsTable.aura("player", blackout_kick_combo)) and not animalsTable.aura("player", serenity) and animalsTable.MONK.lastCast ~= blackout_kick then animalsTable.cast(_, blackout_kick, _, _, _, _, "Blackout Kick") return end

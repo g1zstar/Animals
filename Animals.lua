@@ -262,15 +262,20 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	    end
 
 	    if sourceName ~= UnitName("player") then return end
+        animalsTable.waitForCombatLog = false
 
 	    if event == "SPELL_CAST_START" then
 	    elseif event == "SPELL_CAST_FAILED" then
-	        if animalsTable.waitForCombatLog then animalsTable.waitForCombatLog = false end
 	        -- animalsTable.throttleSlaying = 0
 	        animalsTable.logToFile(spellName..": Unthrottling "..failedType)
+
+	        -- Demon Hunter
+	        	if spellID == 198793 then -- Vengeful Retreat
+	        		SetHackEnabled("Fly", false)
+	        		return
+	        	end
 	        return
 	    elseif event == "SPELL_CAST_SUCCESS" then 
-	        if animalsTable.waitForCombatLog then animalsTable.waitForCombatLog = false end
 	        -- animalsTable.throttleSlaying = (GetTime()+math.random(animalsDataPerChar.chaosMin, animalsDataPerChar.chaosMax)*.001)+animalsTable.spellCDDuration(61304)
 
 	        -- Monk
@@ -283,12 +288,15 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	                animalsTable.MONK.lastCast = spellID
 	                return
 	            end
-
-	        return
 	    elseif event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH" then
 	    elseif event == "SPELL_AURA_APPLIED_DOSE" then -- Never seen this before. it's used for buffs that gain stacks without refreshing duration aka void form (mongoose bite?)
 	    elseif event == "SPELL_AURA_REMOVED" then
 	    elseif event == "SPELL_DAMAGE" then -- projectile unthrottles would go in here
+	    	-- Demon Hunter
+	    		if spellID == 198813 then -- Vengeful Retreat
+	    			C_Timer.After(0.001, function() MoveBackwardStart(); SetHackEnabled("Fly", false); MoveBackwardStop() end)
+	    			return
+	    		end
 	    elseif event == "SPELL_PERIODIC_DAMAGE" then
 	    end
 	end
