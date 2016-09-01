@@ -741,7 +741,7 @@ do -- Cast Functions
             tempStr = json.encode(animalsTable.debugTable, {indent=true})
             WriteFile("C:\\Garrison.json", file..",\n"..tempStr)
         end
-        animalsTable.waitForCombatLog = true
+        -- animalsTable.waitForCombatLog = true
         animalsTable.interruptNextTick = nil
         animalsTable.toggleLog = true
         return true

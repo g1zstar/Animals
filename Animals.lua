@@ -94,14 +94,15 @@ function animalsTable.cacheGear()
 	animalsTable.equippedGear = gear
 	if HasArtifactEquipped() then
 		local closeAfter = false
-		if not ArtifactFrame:IsShown() then
+		if not ArtifactFrame or not ArtifactFrame:IsShown() then
 			closeAfter = true
 			SocketInventoryItem(16)
 		end
+		local spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal
 		for i, powerID in ipairs(C_ArtifactUI.GetPowers()) do
-			local spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal = C_ArtifactUI.GetPowerInfo(powerID)
-			animalsTable.artifactWeapon.weaponPerks.spellID = {
-				cost = perkCost,
+			spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal = C_ArtifactUI.GetPowerInfo(powerID)
+			animalsTable.artifactWeapon.weaponPerks[spellID] = {
+				-- cost = perkCost,
 				currentRank = perkCurrentRank,
 				maxRank = perkMaxRank,
 				bonusRanks = perkBonusRanks,
@@ -279,11 +280,6 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	        -- animalsTable.throttleSlaying = (GetTime()+math.random(animalsDataPerChar.chaosMin, animalsDataPerChar.chaosMax)*.001)+animalsTable.spellCDDuration(61304)
 
 	        -- Monk
-	            if spellID == 115175 then
-	                animalsTable.MONK.soothingMistTarget = destGUID
-	                return
-	            end
-
 	            if animalsDataPerChar.class == "MONK" and animalsTable.currentSpec == 3 and tContains(animalsTable.MONK.hitComboTable, spellID) then
 	                animalsTable.MONK.lastCast = spellID
 	                return
