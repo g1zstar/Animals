@@ -30,6 +30,13 @@ animalsTable.animalTypesToIgnore = {
     "Totem",
     "Not specified",
 }
+animalsTable.animalsAurasToIgnore = {
+    "Arcane Protection",
+    "Water Bubble",
+}
+animalsTable.humansAurasToIgnore = {
+}
+
 
 animalsTable.animalsThatInterrupt = {
     "Thok the Bloodthirsty",
@@ -37,6 +44,7 @@ animalsTable.animalsThatInterrupt = {
     "Franzok",
     "Grom'kar Firemender",
     "Blade Dancer Illianna",
+    "Fenryr",
 }
 animalsTable.spellsThatInterrupt = {}
 animalsTable.spellsThatInterrupt["Thok the Bloodthirsty"] = 0

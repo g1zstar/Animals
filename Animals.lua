@@ -289,8 +289,13 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	    elseif event == "SPELL_AURA_REMOVED" then
 	    elseif event == "SPELL_DAMAGE" then -- projectile unthrottles would go in here
 	    	-- Demon Hunter
+		    	if spellID == 192611 then
+		    		animalsTable.DEMONHUNTER.castFelRush = false
+		    		return
+		    	end
 	    		if spellID == 198813 then -- Vengeful Retreat
-	    			C_Timer.After(0.001, function() MoveBackwardStart(); SetHackEnabled("Fly", false); MoveBackwardStop() end)
+	    			animalsTable.DEMONHUNTER.castVengefulRetreat = false
+	    			SetHackEnabled("NoKnockback", false)
 	    			return
 	    		end
 	    elseif event == "SPELL_PERIODIC_DAMAGE" then

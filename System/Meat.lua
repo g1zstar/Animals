@@ -1,10 +1,6 @@
 local animalsName, animalsTable = ...
 local _ = nil
 
-animalsTable.animalsAurasToIgnore = {
-    "Arcane Protection",
-    "Water Bubble",
-}
 function animalsTable.animalsAuraBlacklist(object)
     local auraToCheck = nil
     for i = 1, #animalsTable.animalsAurasToIgnore do
@@ -14,8 +10,6 @@ function animalsTable.animalsAuraBlacklist(object)
     return true
 end
 
-animalsTable.humansAurasToIgnore = {
-}
 function animalsTable.humansAuraBlacklist(object)
     local auraToCheck = nil
     for i = 1, #animalsTable.humansAurasToIgnore do
@@ -145,3 +139,20 @@ function animalsTable.TTDF(unit) -- keep updated: see if this can be optimized
     end
 end
 -- ripped from CommanderSirow of the wowace forums
+
+animalsTable.interruptTable = {
+
+}
+
+function animalsTable.interruptFunction(target)
+    if not target then target = "target" end
+    if not ObjectExists(target) or not UnitExists(target) or not UnitCastingInfo(target) and not UnitChannelInfo(target) then return end
+
+    if UnitCastingInfo(target) and not select(9, UnitCastingInfo(target)) then
+        if not animalsTable.interruptTable[animalsTable.getUnitID(target)] then animalsTable.interruptTable[animalsTable.getUnitID(target)] = {} end
+        if not animalsTable.interruptTable[animalsTable.getUnitID(target)][select(10, UnitCastingInfo(target))] then animalsTable.interruptTable[animalsTable.getUnitID(target)][select(10, UnitCastingInfo(target))] = {name = UnitCastingInfo(target), type = "cast"} end
+    elseif UnitChannelInfo(target) and not select(8, UnitChannelInfo(target)) then
+        if not animalsTable.interruptTable[animalsTable.getUnitID(target)] then animalsTable.interruptTable[animalsTable.getUnitID(target)] = {} end
+        -- if not animalsTable.interruptTable[animalsTable.getUnitID(target)][select(10, UnitCastingInfo(target))] then animalsTable.interruptTable[animalsTable.getUnitID(target)][select(10, UnitChannelInfo(target))] = {name = UnitChannelInfo(target), type = "channel"} end
+    end
+end

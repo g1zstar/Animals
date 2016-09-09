@@ -26,22 +26,22 @@ function animalsTable.toggleRun()
     SetHackEnabled("Fly", false)
     animalsTable.allowSlaying = not animalsTable.allowSlaying
     animalsTable.monitorAnimationToggle(animalsTable.allowSlaying and "on" or "off")
-    print("GStar Rotations: "..(animalsTable.allowSlaying and "On" or "Off"))
+    print("Animals: "..(animalsTable.allowSlaying and "On" or "Off"))
 end
 
 function animalsTable.toggleAoE()
     animalsTable.aoe = not animalsTable.aoe
-    print("GStar Rotations: AoE now "..(animalsTable.aoe and "on" or "off")..".")
+    print("Animals: AoE now "..(animalsTable.aoe and "on" or "off")..".")
 end
 
 function animalsTable.toggleCDs()
     animalsTable.cds = not animalsTable.cds
-    print("GStar Rotations: CDs now "..(animalsTable.cds and "on" or "off")..".")
+    print("Animals: CDs now "..(animalsTable.cds and "on" or "off")..".")
 end
 
 function animalsTable.toggleInterrupt()
     animalsDataPerChar.interrupt = not animalsDataPerChar.interrupt
-    print("GStar Rotations: Interrupt now "..(animalsDataPerChar.interrupt and "on" or "off")..".")
+    print("Animals: Interrupt now "..(animalsDataPerChar.interrupt and "on" or "off")..".")
 end
 
 function animalsTable.createMonitorFrame()

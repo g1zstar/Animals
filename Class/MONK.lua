@@ -80,6 +80,7 @@ do -- Windwalker
 		if UnitAffectingCombat("player") then
 			if animalsTable.isCH() then return end
 			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+				animalsTable.interruptFunction()
 			    if animalsTable.cds then
 			        if animalsTable.talent62 and animalsTable.spellCanAttack(invoke_xuen_the_white_tiger) then animalsTable.cast(_, invoke_xuen_the_white_tiger, _, _, _, _, "Invoke Xuen, the White Tiger") return end
 			        -- actions+=/potion,name=deadly_grace,if=buff.serenity.up|buff.storm_earth_and_fire.up|(!talent.serenity.enabled&trinket.proc.agility.react)|buff.bloodlust.react|target.time_to_die<=60
