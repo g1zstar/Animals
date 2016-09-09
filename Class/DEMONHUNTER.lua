@@ -65,7 +65,6 @@ do -- Havoc
 		return(blade_dance_damage + demons_bite_per_dance * demons_bite_damage ) / ( 1 + demons_bite_per_dance ) > ( chaos_strike_damage + demons_bite_per_chaos_strike * demons_bite_damage ) / ( 1 + demons_bite_per_chaos_strike )
 	end
 
-	local lineCD = 0
 	local function freezeFelRush() RunMacroText("/run local t=time()+2;while time()< t do end") end
 
 	local function castVengefulRetreat()
@@ -73,10 +72,16 @@ do -- Havoc
 		animalsTable.cast(_, vengeful_retreat, _, _, _, _, "Vengeful Retreat")
 	end
 
+	local function executeFelRush()
+		animalsTable.cast(_, fel_rush, _, _, _, _, "Fel Rush")
+	end
+
+	local lineCD = 0
 	local function castFelRush()
-		if lineCD > 0 or IsFalling() or animalsTable.spellCDDuration(fel_rush) ~= 0 then return end
-		RunMacroText("/run MoveBackwardStart();JumpOrAscendStart();CastSpellByName(\"Fel Rush\");StopMoving()")
-		lineCD = 1
+		-- if lineCD > 0 --[[or IsFalling() or animalsTable.spellCDDuration(fel_rush) ~= 0]] then return end
+		MoveBackwardStart()
+		C_Timer.After(0.04, executeFelRush)
+		-- lineCD = 1
 	end
 
 	function animalsTable.DEMONHUNTER1()
@@ -99,11 +104,12 @@ do -- Havoc
 					animalsTable.DEMONHUNTER.castVengefulRetreat = true
 					return
 				end
-				-- if UnitMovementFlags("Player") == 0 and animalsTable.spellIsReady(fel_rush) and animalsTable.debugTable["ogSpell"] ~= fel_rush and not IsFalling() and (animalsTable.talent51 or animalsTable.talent11) and (not animalsTable.talent51 or (GetSpellCharges(fel_rush) == 2 or animalsTable.spellCDDuration(vengeful_retreat) > 4) and not animalsTable.aura("player", momentum)) and (not animalsTable.talent11 or fury("deficit") >= 25) then
-				-- 	animalsTable.DEMONHUNTER.castFelRush = true
-				-- 	return
-				-- end
-				-- lineCD = 0
+				SetHackEnabled("NoKnockback", false)
+				if UnitMovementFlags("Player") == 0 and animalsTable.spellIsReady(fel_rush) and animalsTable.debugTable["ogSpell"] ~= fel_rush and not IsFalling() and (animalsTable.talent51 or animalsTable.talent11) and (not animalsTable.talent51 or (GetSpellCharges(fel_rush) == 2 or animalsTable.spellCDDuration(vengeful_retreat) > 4) and not animalsTable.aura("player", momentum)) and (not animalsTable.talent11 or fury("deficit") >= 25) then
+					animalsTable.DEMONHUNTER.castFelRush = true
+					return
+				end
+				lineCD = 0
 				if UnitMovementFlags("Player") == 0 and animalsTable.spellIsReady(eye_beam) and animalsTable.distanceBetween("target") < 8+UnitCombatReach("target") and not animalsTable.aura("player", metamorphosis.buff) and (not animalsTable.talent32 or fury() >= 80 or fury("deficit") < 30) then animalsTable.cast(_, eye_beam, _, _, _, _, "Eye Beam: Demonic") return end
 				-- # If Metamorphosis is ready, pool fury first before using it.
 				-- actions+=/demons_bite,sync=metamorphosis,if=fury.deficit>=25
@@ -134,6 +140,7 @@ do -- Havoc
 				-- 	animalsTable.DEMONHUNTER.castFelRush = true
 				-- 	return
 				-- end
+				lineCD = 0
 				if animalsTable.spellCanAttack(demons_bite) then animalsTable.cast(_, demons_bite, _, _, _, _, "Demon's Bite") return end
 				if animalsTable.spellCanAttack(throw_glaive) then animalsTable.cast(_, throw_glaive, _, _, _, _, "Throw Glaive") return end
 

@@ -24,6 +24,7 @@ end
 function animalsTable.toggleRun()
     animalsTable.waitForCombatLog = false
     SetHackEnabled("Fly", false)
+    animalsTable.DEMONHUNTER.castVengefulRetreat = false;animalsTable.DEMONHUNTER.castFelRush = false
     animalsTable.allowSlaying = not animalsTable.allowSlaying
     animalsTable.monitorAnimationToggle(animalsTable.allowSlaying and "on" or "off")
     print("Animals: "..(animalsTable.allowSlaying and "On" or "Off"))

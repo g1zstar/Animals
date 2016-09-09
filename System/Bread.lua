@@ -704,11 +704,8 @@ do -- Cast Functions
         if not guid then guid = "target" end
         if UnitGUID("player") == guid then guid = "player" end
 
-        if not guid then
-            CastSpellByName(Name)
-        else
-            CastSpellByName(Name, guid)
-        end
+        if name == 195072 then JumpOrAscendStart() end
+        CastSpellByName(Name, guid)
 
         if IsAoEPending() then
             if x and y and z then

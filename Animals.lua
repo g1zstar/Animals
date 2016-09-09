@@ -291,11 +291,11 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	    	-- Demon Hunter
 		    	if spellID == 192611 then
 		    		animalsTable.DEMONHUNTER.castFelRush = false
+		    		StopMoving()
 		    		return
 		    	end
 	    		if spellID == 198813 then -- Vengeful Retreat
 	    			animalsTable.DEMONHUNTER.castVengefulRetreat = false
-	    			SetHackEnabled("NoKnockback", false)
 	    			return
 	    		end
 	    elseif event == "SPELL_PERIODIC_DAMAGE" then
