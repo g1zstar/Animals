@@ -84,6 +84,7 @@ do -- Unit Functions
     end
 
     function animalsTable.getUnitID(guid)
+        if not guid then guid = "target" end
         if ObjectExists(guid) and UnitExists(guid) then
             local id = select(6,strsplit("-", UnitGUID(guid) or ""))
             return tonumber(id)
@@ -94,6 +95,7 @@ end
 
 do -- Spell Functions
     function animalsTable.spellCDDuration(spell)
+        if spell == 0 then return math.huge end
         local start, duration = GetSpellCooldown(spell)
         return start == 0 and 0 or start + duration - GetTime()
     end
@@ -112,7 +114,7 @@ do -- Spell Functions
             [106830] = 106832,
     }
     function animalsTable.spellIsReady(spell, execute)
-        if type(spell) ~= "string" and type(spell) ~= "number" then return false end
+        if type(spell) ~= "string" and type(spell) ~= "number" or spell == "" or spell == 0 then return false end
         local spellTransform = spellKnownTransformTable[spell] or spell
         if not (type(spellTransform) == "number" and GetSpellInfo(GetSpellInfo(spellTransform)) or type(spellTransform) == "string" and GetSpellLink(spellTransform) or IsSpellKnown(spellTransform)) then
             if not spellNotKnown[spellTransform] then
@@ -252,8 +254,9 @@ do -- Spell Functions
     end
 end
 
--- Resources
+do -- Resources Functions
     function animalsTable.health(guid, max, percent, deficit) -- returns the units max health if max is true, percentage remaining if percent is true and max is false, deficit if deficit is true, or current health
+        if not guid then guid = "target" end
         if max then
             return UnitHealthMax(guid)
         elseif percent then
@@ -302,6 +305,7 @@ end
     function animalsTable.simCSpellHaste()
         return 1/(1+GetHaste()*.01)
     end
+end
 
 do -- Aura Functions
     local auraTable = {}
@@ -324,7 +328,7 @@ do -- Aura Functions
         -- return UnitBuff(guid, unpack(auraTable)) or UnitDebuff(guid, unpack(auraTable)) or UnitAura(guid, unpack(auraTable))
         if UnitBuff(guid, unpack(auraTable)) then return UnitBuff(guid, unpack(auraTable)) elseif UnitDebuff(guid, unpack(auraTable)) then return UnitDebuff(guid, unpack(auraTable)) else return UnitAura(guid, unpack(auraTable)) end
     end
-    
+
     function animalsTable.auraRemaining(unit, buff, time, ...) -- ... is the same as above, this checks for <= the time argument. if you want greater than, than do "not animalsTable.auraRemaining", this will return true if the aura isn't there
         if type(unit) == "string" and string.sub(unit, 1, 6) == "Player" then unit = "player" end
         if ObjectExists(unit) and UnitExists(unit) then
@@ -342,6 +346,7 @@ do -- Aura Functions
     end
 
     function animalsTable.auraStacks(unit, buff, stacks, ...) -- ... is the same as above, this checks for >= stacks argument, if you want less than, than do "not animalsTable.auraStacks", this will return false if the aura isn't there
+        if buff == "" or buff == 0 then return false end
         if type(unit) == "string" and string.sub(unit, 1, 6) == "Player" then unit = "player" end
         if ObjectExists(unit) and UnitExists(unit) then
             if tonumber(buff) then buff = GetSpellInfo(buff) end
@@ -458,12 +463,82 @@ do -- AoE Functions
         return GMobCount
     end
 
-    function animalsTable.targetCount(yards, tapped)
-        if not ObjectExists("target") or not UnitExists("target") or UnitHealth("target") == 0 then return 0 end
+    function animalsTable.targetCount(target, yards, tapped)
+        if not target then target = "target" end
+        if not ObjectExists(target) or not UnitExists(target) or UnitHealth(target) == 0 then return 0 end
 
         local GMobCount = 0
         local unitPlaceholder = nil
 
+
+        if mode == "==" then
+            for i = 1, animalsTable.animalsSize do
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(target, unitPlaceholder) <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+                    GMobCount = GMobCount + 1
+                end
+                if GMobCount > goal then return false end
+            end
+            return GMobCount == goal
+        elseif mode == "<=" then
+            for i = 1, animalsTable.animalsSize do
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(target, unitPlaceholder) <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+                    GMobCount = GMobCount + 1
+                end
+                if GMobCount > goal then return false end
+            end
+            return GMobCount <= goal
+        elseif mode == "<" then
+            for i = 1, animalsTable.animalsSize do
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(target, unitPlaceholder) <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+                    GMobCount = GMobCount + 1
+                end
+                if GMobCount >= goal then return false end
+            end
+            return GMobCount < goal
+        elseif mode == ">=" then
+            for i = 1, animalsTable.animalsSize do
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(target, unitPlaceholder) <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+                    GMobCount = GMobCount + 1
+                end
+                if GMobCount >= goal then return true end
+            end
+            return false
+        elseif mode == ">" then
+            for i = 1, animalsTable.animalsSize do
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(target, unitPlaceholder) <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+                    GMobCount = GMobCount + 1
+                end
+                if GMobCount > goal then return true end
+            end
+            return false
+        elseif mode == "~=" then
+            for i = 1, animalsTable.animalsSize do
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(target, unitPlaceholder) <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+                    GMobCount = GMobCount + 1
+                end
+                if GMobCount > goal then return true end
+            end
+            if GMobCount < goal then return true end
+            return false
+        elseif mode == "inclusive" then
+            local higherGoal = math.max(goal, goal2)
+            local lowerGoal = math.min(goal, goal2)
+            for i = 1, animalsTable.animalsSize do
+                unitPlaceholder = animalsTable.targetAnimals[i]
+                if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(target, unitPlaceholder) <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
+                    GMobCount = GMobCount + 1
+                end
+                if GMobCount > higherGoal then return false end
+            end
+            if GMobCount < lowerGoal then return false end
+            return true
+        end
         for i = 1, animalsTable.animalsSize do
             unitPlaceholder = animalsTable.targetAnimals[i]
             if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(unitPlaceholder, "target") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
@@ -472,38 +547,6 @@ do -- AoE Functions
         end
 
         if GMobCount == 0 then return 1 else return GMobCount end
-    end
-
-    function animalsTable.focusCount(yards, tapped)
-        if not ObjectExists("focus") or not UnitExists("focus") or UnitHealth("focus") == 0 then return 0 end
-
-        local GMobCount = 0
-        local unitPlaceholder = nil
-
-        for i = 1, animalsTable.animalsSize do
-            unitPlaceholder = animalsTable.targetAnimals[i]
-            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(unitPlaceholder, "focus") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
-                GMobCount = GMobCount + 1
-            end
-        end
-
-        return GMobCount
-    end
-
-    function animalsTable.beastCleaveCount(yards, tapped)
-        if not ObjectExists("pet") or not UnitExists("pet") or animalsTable.health("pet") == 0 then return 0 end
-
-        local GMobCount = 0
-        local unitPlaceholder = nil
-
-        for i = 1, animalsTable.animalsSize do
-            unitPlaceholder = animalsTable.targetAnimals[i]
-            if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and animalsTable.distanceBetween(unitPlaceholder, "pet") <= yards+UnitCombatReach(unitPlaceholder) and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or not tapped) then
-                GMobCount = GMobCount + 1
-            end
-        end
-
-        return GMobCount
     end
 
     function animalsTable.pullAllies(reach)
@@ -743,4 +786,146 @@ do -- Cast Functions
         animalsTable.toggleLog = true
         return true
     end
+end
+
+do -- Artifact Functions
+    function animalsTable.getTraitCurrentRank(artifact, perk)
+        if animalsTable.equippedGear.MainHand ~= artifact or not animalsTable.artifactWeapon[animalsTable.equippedGear.MainHand].weaponPerks[perk] then return 0 end
+        return animalsTable.artifactWeapon[animalsTable.equippedGear.MainHand].weaponPerks[perk].currentRank
+    end
+end
+
+do -- Encounter Functions
+--     local zoneTable = {
+--         [1041] = { -- Halls of Valor
+--             ["Hymdall"] = {
+--                 desired_targets = 1,
+--                 adds = false,
+--             },
+--             ["Hyrja"] = {
+--                 desired_targets = 1,
+--                 adds = false,
+--             },
+--             ["Fenryr"] = {
+--                 desired_targets = 1,
+--                 adds = "heroic",
+--                 adds_count = 3,
+--             },
+--             ["God-King Skovald"] = {
+--                 desired_targets = 1,
+--                 adds = "heroic",
+--                 adds_count = 6,
+--             },
+--             ["Odyn"] = {
+--                 desired_targets = 1,
+--                 adds = "heroic",
+--                 adds_count = 1,
+--             },
+--         },
+--         [1042] = { -- Maw of Souls
+--             ["Ymiron, the Fallen King"] = {
+--                 desired_targets = 1,
+--                 adds = false,
+--             },
+--             ["Harbaron"] = {
+--                 desired_targets = 1,
+--                 adds = 2,
+--                 adds1_count = 3, -- Fragment
+--                 adds2_count = 1, -- Shackled Servitor
+--             },
+--             ["Helya"] = {
+--                 desired_targets = 1,
+--                 adds = false, -- ? should we think of phase 1 as adds?
+--             },
+--         },
+--         [1045] = { -- Vault of the Wardens
+--             ["Tirathon Saltheril"] = {
+--                 desired_targets = 1,
+--                 adds = false,
+--             },
+--             ["Inquisitor Tormentorum"] = {
+--                 desired_targets = 1,
+--                 adds = true,
+--                 adds_count = 3,
+--             },
+--             ["Ash'golm"] = {
+--                 desired_targets = 1,
+--                 adds = false, -- embers are a bit hard to account for
+--             },
+--             ["Glazer"] = {
+--                 desired_targets = 1,
+--                 adds = false,
+--             },
+--             ["Cordana Felsong"] = {
+--                 desired_targets = 1,
+--                 adds = false, -- she is invulnerable whenever there is an add so no adds effectively
+--             },
+--         },
+--         [1046] = { -- Eye of Azshara
+--             ["Warlord Parjesh"] = {
+--                 desired_targets = 1,
+--                 adds = true,
+--                 adds_count = 2,
+--             },
+--             ["Lady Hatecoil"] = {
+--                 desired_targets = 1,
+--                 adds = true,
+--                 adds_count = 5, -- Saltsea Globules how many? believe it's one per player
+--             },
+--             ["King Deepbeard"] = {
+--                 desired_targets = 1,
+--                 adds = false,
+--                 adds_count = 0,
+--             },
+--             ["Serpentrix"] = {
+--                 desired_targets = 1,
+--                 adds = false, -- Heads are too spread apart to serve as adds
+--                 adds_count = 0,
+--             },
+--             ["Wrath of Azshara"] = {
+--                 desired_targets = 1,
+--                 adds = false,
+--                 adds_count = 0,
+--             },
+--         },
+--         [1065] = { -- Neltharion's Lair
+--             ["Rokmora"] = {
+--                 desired_targets = 1,
+--                 adds = false, -- ignore skitters
+--                 adds_count = 0,
+--             },
+--             ["Ularogg Cragshaper"] = {
+--                 desired_targets = 1,
+--                 adds = false, -- treat idols as adds?
+--                 adds_count = 0,
+--             },
+--             ["Naraxas"] = {
+--                 desired_targets = 1,
+--                 adds = true,
+--                 adds_count = 2, -- ?
+--             },
+--             ["Dargrul the Underking"] = {
+--                 desired_targets = 1,
+--                 adds = true,
+--                 adds_count = 1,
+--             },
+--         },
+--         [1066] = { -- Assault on Violet Hold
+--         },
+--         [1067] = { -- Darkheart Thicket
+--         },
+--         [1079] = { -- The Arcway
+--         },
+--         [1081] = { -- Black Rook Hold
+--         },
+--         [1087] = { -- Court of Stars
+--         },
+
+--         [1088] = { -- The Nighthold
+--         },
+--         [1094] = { -- The Emerald Nightmare
+--         },
+--     }
+
+    -- function
 end

@@ -18,5 +18,8 @@ System\Bread.lua
 
 Class\MONK.lua
 Class\DEMONHUNTER.lua
+Class\DEATHKNIGHT.lua
+Class\ROGUE.lua
+Class\HUNTER.lua
 
 System\Initialize.lua

@@ -9,6 +9,12 @@ if not animalsDataPerChar.chaosMin then
 	animalsDataPerChar.chaosMin = -20
 	animalsDataPerChar.chaosMax = 40
 end
+if not animalsDataPerChar.castMin then
+    animalsDataPerChar.castMin = 10
+    animalsDataPerChar.castMax = 25
+    animalsDataPerChar.channelMin = 85
+    animalsDataPerChar.channelMax = 95
+end
 
 animalsTable.skipLoS = {
     76585, -- Ragewing
@@ -33,6 +39,7 @@ animalsTable.animalTypesToIgnore = {
 animalsTable.animalsAurasToIgnore = {
     "Arcane Protection",
     "Water Bubble",
+    "Stuff of Nightmares",
 }
 animalsTable.humansAurasToIgnore = {
 }

@@ -20,7 +20,7 @@ for i = 1, 7 do
 	end
 end
 animalsTable.artifactWeapon = {
-	weaponPerks = {}
+	-- weaponPerks = {}
 }
 
 function animalsTable.createMainFrame()
@@ -39,7 +39,8 @@ function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player
 		if not animalsDataPerChar.class then animalsDataPerChar.class = select(2, UnitClass("player")) end
 		animalsTable.currentSpec = animalsTable.currentSpec or GetSpecialization()
 		animalsTable.cacheTalents()
-		animalsTable.cacheGear()
+		C_Timer.After(3, animalsTable.cacheGear)
+		-- animalsTable.cacheGear()
 		animalsTable.preventSlaying = true
 		animalsTable.targetAnimals = {}
 		animalsTable.targetHumans = {}
@@ -54,7 +55,8 @@ function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player
 	elseif originalEvent == "PLAYER_TALENT_UPDATE" then
 		animalsTable.cacheTalents()
 	elseif originalEvent == "PLAYER_EQUIPMENT_CHANGED" then
-		animalsTable.cacheGear()
+		C_Timer.After(3, animalsTable.cacheGear)
+		-- animalsTable.cacheGear()
 	end
 end
 
@@ -66,42 +68,49 @@ function animalsTable.cacheTalents()
 	end
 end
 
+local gear = {
+	Ammo = 0,
+	Back = 0,
+	Chest = 0,
+	Feet = 0,
+	Finger0 = 0,
+	Finger1 = 0,
+	Hands = 0,
+	Head = 0,
+	Legs = 0,
+	MainHand = 0,
+	Neck = 0,
+	SecondaryHand = 0,
+	Shirt = 0,
+	Shoulder = 0,
+	Tabard = 0,
+	Trinket0 = 0,
+	Trinket1 = 0,
+	Waist = 0,
+	Wrist = 0,
+}
 function animalsTable.cacheGear()
-	local gear = {
-		Ammo = 0,
-		Back = 0,
-		Chest = 0,
-		Feet = 0,
-		Finger0 = 0,
-		Finger1 = 0,
-		Hands = 0,
-		Head = 0,
-		Legs = 0,
-		MainHand = 0,
-		Neck = 0,
-		SecondaryHand = 0,
-		Shirt = 0,
-		Shoulder = 0,
-		Tabard = 0,
-		Trinket0 = 0,
-		Trinket1 = 0,
-		Waist = 0,
-		Wrist = 0,
-	}
 	for k,v in pairs(gear) do
-	   v = GetInventoryItemID("player", GetInventorySlotInfo(k.."Slot")) or 0
+	   gear[k] = GetInventoryItemID("player", GetInventorySlotInfo(k.."Slot")) or 0
 	end
 	animalsTable.equippedGear = gear
 	if HasArtifactEquipped() then
+		if not animalsTable.artifactWeapon[gear.MainHand] then animalsTable.artifactWeapon[gear.MainHand] = {weaponPerks = {}} end
 		local closeAfter = false
 		if not ArtifactFrame or not ArtifactFrame:IsShown() then
 			closeAfter = true
 			SocketInventoryItem(16)
 		end
+
+		local item_id = C_ArtifactUI.GetArtifactInfo()
+		if not item_id or item_id == 0 then if ArtifactFrame:IsShown() and closeAfter then HideUIPanel(ArtifactFrame) return end end
+		local powers = C_ArtifactUI.GetPowers()
+		
 		local spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal
-		for i, powerID in ipairs(C_ArtifactUI.GetPowers()) do
-			spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal = C_ArtifactUI.GetPowerInfo(powerID)
-			animalsTable.artifactWeapon.weaponPerks[spellID] = {
+		for i = 1, #powers do
+			local power_id = powers[i]
+			spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal = C_ArtifactUI.GetPowerInfo(power_id)
+			animalsTable.artifactWeapon[gear.MainHand].weaponPerks[spellID] = {
 				-- cost = perkCost,
 				currentRank = perkCurrentRank,
 				maxRank = perkMaxRank,
@@ -189,7 +198,7 @@ function animalsTable.iterateSlayingInformationFrame()
 	    then
 	        if bit.band(ObjectType(unitPlaceholder), 0x8) > 0 and bit.band(ObjectType(unitPlaceholder), 0x10) == 0 then -- mobs
 	            if animalsDataPerChar.humans and UnitInParty(unitPlaceholder) then -- friendly mobs
-	                if animalsTable.humansAuraBlacklist(unitPlaceholder) then
+	                if animalsTable.animalsAuraBlacklist(unitPlaceholder) then
 	                    animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
 	                    animalsTable.humansSize = animalsTable.humansSize + 1
 	                end
