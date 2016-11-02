@@ -36,17 +36,35 @@ function animalsTable.humanNotDuplicate(unitPassed)
     return true
 end
 
+function animalsTable.sortAnimalsByLowestTTD(a, b)
+    return animalsTable.getTTD(a) < animalsTable.getTTD(b)
+end
+
+function animalsTable.sortAnimalsByHighestTTD(a, b)
+    if animalsTable.getTTD(a) == math.huge then return false elseif animalsTable.getTTD(b) == math.huge then return true end
+    return animalsTable.getTTD(a) > animalsTable.getTTD(b)
+end
+
+function animalsTable.logAnimalsToFile()
+    local unit
+    for i = 1, animalsTable.animalsSize do
+        unit = animalsTable.targetAnimals[i]
+        animalsTable.logToFile(
+            UnitName(unit)..":\n\t"..UnitCreatureType(unit).."\n\t"..tostring(UnitIsVisible(unit)).."\n\t"..tostring(animalsTable.animalIsTappedByPlayer(unit))
+            )
+    end
+end
 -- ripped from CommanderSirow of the wowace forums
 function animalsTable.TTDF(unit) -- keep updated: see if this can be optimized
     -- Setup trigger (once)
     if not nMaxSamples then
         -- User variables
         nMaxSamples = 15             -- Max number of samples
-        nScanThrottle = 0.5             -- Time between samples
+        nScanThrottle = 0.25             -- Time between samples
     end
 
     -- Training Dummy alternate between 4 and 200 for cooldowns
-    if tContains(animalsTable.dummiesID, animalsTable.getUnitID(unit)) then
+    if tContains(animalsTable.dummiesID, ObjectID(unit)) then
         if not animalsDataPerChar.dummyTTDMode or animalsDataPerChar.dummyTTDMode == 1 then
             if (not animalsTable.TTD[unit] or animalsTable.TTD[unit] == 200) then animalsTable.TTD[unit] = 4 return else animalsTable.TTD[unit] = 200 return end
         elseif animalsDataPerChar.dummyTTDMode == 2 then
@@ -238,6 +256,16 @@ local interruptTable = {
             [104217] = {[208165] = {type = "cast", verify = "Withering Soul"}}, -- Talixae Flamewreath
             [112668] = {["Drifting Embers"] = {type = "channel", verify = "Drifting Embers"}}, -- Infernal Imp
         },
+        [1115] = { -- Karazhan
+            [114626] = {[228255] = {type = "cast", verify = "Soul Leech"}}, -- Forlorn Spirit
+            [114627] = {[228239] = {type = "cast", verify = "Shrieking Terror"}}, -- Shrieking Terror
+            [114329] = {[228025] = {type = "cast", verify = "Heat Wave"}}, -- Luminore
+            -- [114522] = {[228011] = {type = "cast", verify = "Soup Spray"}, [228019] = {type = "cast", verify = "Leftovers"}}, -- Mrs. Cauldrons
+            [114328] = {[227987] = {type = "cast", verify = "Dinner Bell!"}}, -- Coggleston
+            [114266] = {[227420] = {type = "cast", verify = "Bubble Blast"}}, -- Shoreline Tidespeaker
+            -- [] = {[] = {type = "cast", verify = ""}}, -- Elfyra
+            -- [] = {[] = {type = "cast", verify = ""}}, -- Galindre
+        },
         
 
     -- Legion Raids
@@ -256,6 +284,9 @@ local interruptTable = {
             [112260] = {[222939] = {type = "cast", verify = "Shadow Volley"}}, -- Dreadsoul Defiler
             [105495] = {[211368] = {type = "cast", verify = "Twisted Touch of Life"}}, -- Twisted Sister
         },
+        ["Trial of Valor"] = { -- Trial of Valor
+
+        },
 }
 local verifyTable = {
 }
@@ -263,7 +294,7 @@ local verifyTable = {
 function animalsTable.interruptFunction(target, interruptID)
     if not target then target = "target" end
     if not ObjectExists(target) or not UnitExists(target) or not UnitCastingInfo(target) and not UnitChannelInfo(target) then return end
-    local zone, unitID, spellID, spellName, spellBegin, spellEnd = GetCurrentMapAreaID(), animalsTable.getUnitID(target), nil, nil
+    local zone, unitID, spellID, spellName, spellBegin, spellEnd = GetCurrentMapAreaID(), ObjectID(target), nil, nil
     if not zone or not unitID or not interruptTable[zone] then return end
     if not verifyTable[zone] then verifyTable[zone] = {} end
 
@@ -274,7 +305,7 @@ function animalsTable.interruptFunction(target, interruptID)
     elseif UnitChannelInfo(target) and not select(8, UnitChannelInfo(target)) then
         spellID = UnitChannelInfo(target)
         if spellID then
-            if not interruptTable[zone][unitID] and not verifyTable[zone][unitID] then verifyTable[zone][unitID] = {} end
+            if not verifyTable[zone][unitID] then verifyTable[zone][unitID] = {} end
             if (not interruptTable[zone][unitID] or not interruptTable[zone][unitID][spellID]) and not verifyTable[zone][unitID][spellID] then verifyTable[zone][unitID][spellID] = {mob = UnitName(target), type = "channel", verify = spellID} return end
         end
     end
@@ -305,8 +336,8 @@ function animalsTable.interruptFunction(target, interruptID)
 end
 
 function animalsTable.dumpVerifyTable()
-    for k,v in pairs(verifyTable) do
-        print(k,v)
-    end
-    -- SlashCmdList["DUMP"]("verifyTable")
+    -- for k,v in pairs(verifyTable) do
+    --     print(k,v)
+    -- end
+    SlashCmdList["DUMP"]("verifyTable")
 end

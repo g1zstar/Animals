@@ -14,6 +14,9 @@ local blood_fury
 local berserking
 local arcane_torrent
 
+local vanish = 1856
+local kick = 1766
+
 local the_dreadlords_deceit = 228224
 
 local function vanishPartyCheck(target)
@@ -39,108 +42,145 @@ local function vanishPartyCheck(target)
 end
 
 do -- Assassination
+	local envenom_condition = false
+	local envenom_precheck = false
+	local rupture_pmultiplier = {}
 	-- talents=2110111
 
-	local mutilate = 0
-	local garrote = 0
+	local mutilate = 1329
+	local garrote  = 703
+	local rupture = 1943
+	local envenom = 32645
+	local fan_of_knives = 51723
 
-	local function build_ex()
-		-- # Builders Exsanguinate
-		-- actions.build_ex=hemorrhage,cycle_targets=1,if=combo_points.deficit>=1&refreshable&dot.rupture.remains>6&spell_targets.fan_of_knives>1&spell_targets.fan_of_knives<=4
-		-- actions.build_ex+=/hemorrhage,cycle_targets=1,max_cycle_targets=3,if=combo_points.deficit>=1&refreshable&dot.rupture.remains>6&spell_targets.fan_of_knives>1&spell_targets.fan_of_knives=5
-		-- actions.build_ex+=/fan_of_knives,if=(spell_targets>=2+debuff.vendetta.up&(combo_points.deficit>=1|energy.deficit<=30))|(!artifact.bag_of_tricks.enabled&spell_targets>=7+2*debuff.vendetta.up)
-		-- actions.build_ex+=/fan_of_knives,if=equipped.the_dreadlords_deceit&((buff.the_dreadlords_deceit.stack>=29|buff.the_dreadlords_deceit.stack>=15&debuff.vendetta.remains<=3)&debuff.vendetta.up|buff.the_dreadlords_deceit.stack>=5&cooldown.vendetta.remains>60&cooldown.vendetta.remains<65)
-		-- actions.build_ex+=/hemorrhage,if=(combo_points.deficit>=1&refreshable)|(combo_points.deficit=1&(dot.rupture.exsanguinated&dot.rupture.remains<=2|cooldown.exsanguinate.remains<=2))
-		if animalsTable.spellCanAttack(mutilate) then
-			if combo_points("deficit") <= 1 and energy("deficit") <= 30 then animalsTable.cast(_, mutilate, false, false, false, "SpellToInterrupt", "Mutilate: Prevent Energy Cap") return end
-			if combo_points("deficit") >= 2 and animalsTable.spellCDDuration(garrote) > 2 then animalsTable.cast(_, mutilate, false, false, false, "SpellToInterrupt", "Mutilate: Garrote CD > 2") return end
+	local vendetta = 79140
+
+	local elaborate_planning = 193641
+	local exsanguinate = 200806
+	local death_from_above = 152150
+	local hemorrhage = 16511
+
+	local artifact = 128870
+	local kingsbane = 192759
+	local bag_of_tricks = 192657
+	local urge_to_kill = 192384
+
+	local function cds()
+		-- actions.cds=marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|combo_points.deficit>=5
+		if animalsTable.cds then
+			if animalsTable.spellCanAttack(vendetta) then
+				-- actions.cds+=/vendetta,if=target.time_to_die<20
+				if animalsTable.aura("target", rupture, "", "PLAYER") and (not animalsTable.talent63 or animalsTable.spellCDDuration(exsanguinate) < 1+4*(animalsTable.getTraitCurrentRank(artifact, urge_to_kill) == 0 and 1 or 0)) and (energy() < 55 or (GetTime()-animalsTable.combatStartTime) < 10 or animalsTable.aoe and animalsTable.playerCount(10, _, 2, ">=") or animalsTable.getTraitCurrentRank(artifact, urge_to_kill) == 0) then animalsTable.cast(_, vendetta, false, false, false, "SpellToInterrupt", "Vendetta") return end
+			end
+		end
+		if animalsTable.spellIsReady(vanish) and vanishPartyCheck() then
+			-- actions.cds+=/vanish,if=!dot.rupture.exsanguinated&((talent.subterfuge.enabled&combo_points<=2)|(talent.shadow_focus.enabled&combo_points.deficit>=2))
+			if not animalsTable.talent63 and animalsTable.talent21 and combo_points() >= (animalsTable.talent31 and 6 or 5) and animalsTable.spellCDDuration(61304) == 0 and energy() >= 25 then animalsTable.cast(_, vanish, false, false, false, "SpellToInterrupt", "Vanish") return end
+		end
+	end
+
+	local function garrote_apl()
+		if not animalsTable.spellIsReady(garrote) and not animalsTable.poolCheck(garrote) then return false end
+		if animalsTable.talent22 and combo_points("deficit") >= 1 and animalsTable.aoe and animalsTable.playerCount(10, _, 2, ">=") then
+			if animalsTable.poolCheck(garrote) then return end
+			if animalsTable.spellCanAttack(garrote) and not animalsTable.aura("target", garrote, "", "PLAYER") then animalsTable.cast(_, garrote, false, false, false, "SpellToInterrupt", "Garrote: Cleave") return end
+			for i = 1, animalsTable.animalsSize do
+				rotationUnitIterator = animalsTable.targetAnimals[i]
+				if animalsTable.spellCanAttack(garrote, rotationUnitIterator) and not animalsTable.aura(rotationUnitIterator, garrote, "", "PLAYER") then animalsTable.cast(rotationUnitIterator, garrote, false, false, false, "SpellToInterrupt") return end
+			end
+		end
+		if combo_points("deficit") >= 1 and (not animalsTable.aura("target", garrote, "", "PLAYER") or select(6, animalsTable.aura("target", garrote, "", "PLAYER")) >= 18) and animalsTable.auraRemaining("target", garrote, 5.4, "", "PLAYER") then
+			if animalsTable.poolCheck(garrote) then return end
+			if animalsTable.spellCanAttack(garrote) then animalsTable.cast(_, garrote, false, false, false, "SpellToInterrupt", "Garrote") return end
+		end
+	end
+
+	local function getRupturePMult(unit)
+		if not animalsTable.aura(unit, rupture, "", "PLAYER") then return 0 end
+		return rupture_pmultiplier[UnitGUID(unit)]
+	end
+
+	local function envenom_condition()
+		envenom_precheck = (not animalsTable.talent21 or animalsTable.spellCDDuration(vanish) >= 6 or not vanishPartyCheck()) and animalsTable.auraRemaining("player", elaborate_planning, 1.5) and (animalsTable.getTraitCurrentRank(artifact, bag_of_tricks) == 1 or not animalsTable.aoe or animalsTable.playerCount(10, _, 6, "<="))
+		if not envenom_precheck then return false end
+		if animalsTable.spellCanAttack(rupture, "target") and ((animalsTable.auraRemaining("target", rupture, 7.2, "", "PLAYER") and getRupturePMult("target") < 1.5) or animalsTable.auraRemaining("target", rupture, 6, "", "PLAYER")) then return false end
+		if animalsTable.aoe then
+			for i = 1, animalsTable.animalsSize do
+				rotationUnitIterator = animalsTable.targetAnimals[i]
+				if animalsTable.spellCanAttack(rupture, rotationUnitIterator) and ((animalsTable.auraRemaining(rotationUnitIterator, rupture, 7.2, "", "PLAYER") and getRupturePMult(rotationUnitIterator) < 1.5) or animalsTable.auraRemaining(rotationUnitIterator, rupture, 6, "", "PLAYER")) then return false end
+			end
+		end
+		-- envenom_condition,value=!(dot.rupture.refreshable&dot.rupture.pmultiplier<1.5)&(!talent.nightstalker.enabled|cooldown.vanish.remains>=6)&dot.rupture.remains>=6&buff.elaborate_planning.remains<1.5&(artifact.bag_of_tricks.enabled|spell_targets.fan_of_knives<=6)
+		return true
+	end
+
+	local function finish_noex()
+		if animalsTable.spellIsReady(rupture) and combo_points() >= (animalsTable.talent31 and 6 or 5) then
+			if animalsTable.aoe and #animalsTable.tRupture < 14 - 2 * animalsTable.getTraitCurrentRank(artifact, bag_of_tricks) and animalsTable.playerCount(10, _, 1, ">") then
+				if animalsTable.spellCanAttack(rupture) and not animalsTable.aura("target", rupture, "", "PLAYER") and animalsTable.getTTD() > 6 then animalsTable.cast(_, rupture, false, false, false, "SpellToInterrupt", "Rupture: AoE"); rupture_pmultiplier[UnitGUID("target")] = (animalsTable.talent21 and IsStealthed() and 1.5 or 1) return end
+				table.sort(animalsTable.targetAnimals, animalsTable.sortAnimalsByHighestTTD)
+				for i = 1, animalsTable.animalsSize do
+					rotationUnitIterator = animalsTable.targetAnimals[i]
+					if animalsTable.getTTD(rotationUnitIterator) > 6 and animalsTable.getTTD(rotationUnitIterator) < math.huge then
+						if animalsTable.spellCanAttack(rupture, rotationUnitIterator) and not animalsTable.aura(rotationUnitIterator, rupture, "", "PLAYER") then animalsTable.cast(rotationUnitIterator, rupture, false, false, false, "SpellToInterrupt"); rupture_pmultiplier[UnitGUID(rotationUnitIterator)] = (animalsTable.talent21 and IsStealthed() and 1.5 or 1) return end
+					else
+						break
+					end
+				end
+			end
+			if animalsTable.auraRemaining("target", rupture, 7.2, "", "PLAYER") or animalsTable.talent21 and animalsTable.aura("player", vanish) then animalsTable.cast(_, rupture, false, false, false, "SpellToInterrupt", "Rupture") rupture_pmultiplier[UnitGUID("target")] = (animalsTable.talent21 and IsStealthed() and 1.5 or 1) return end
+		end
+		if envenom_condition() and combo_points() >= (animalsTable.talent31 and 6 or 5)-2*(animalsTable.talent12 and 1 or 0) and (animalsTable.auraRemaining("player", envenom, (combo_points()+1)*.3) or animalsTable.talent12 and not animalsTable.aura("player", elaborate_planning) or animalsTable.spellCDDuration(garrote) < 1) then
+			if animalsTable.talent73 and animalsTable.spellCanAttack(death_from_above) then animalsTable.cast(_, death_from_above, false, false, false, "SpellToInterrupt", "Death from Above") return end
+			if animalsTable.spellCanAttack(envenom) then animalsTable.cast(_, envenom, false, false, false, "SpellToInterrupt", "Envenom") return end
 		end
 	end
 
 	local function build_noex()
-		-- # Builders no Exsanguinate
 		-- actions.build_noex=hemorrhage,cycle_targets=1,if=combo_points.deficit>=1&refreshable&dot.rupture.remains>6&spell_targets.fan_of_knives>1&spell_targets.fan_of_knives<=4
 		-- actions.build_noex+=/hemorrhage,cycle_targets=1,max_cycle_targets=3,if=combo_points.deficit>=1&refreshable&dot.rupture.remains>6&spell_targets.fan_of_knives>1&spell_targets.fan_of_knives=5
-		-- actions.build_noex+=/fan_of_knives,if=(spell_targets>=2+debuff.vendetta.up&(combo_points.deficit>=1|energy.deficit<=30))|(!artifact.bag_of_tricks.enabled&spell_targets>=7+2*debuff.vendetta.up)
-		-- actions.build_noex+=/fan_of_knives,if=equipped.the_dreadlords_deceit&((buff.the_dreadlords_deceit.stack>=29|buff.the_dreadlords_deceit.stack>=15&debuff.vendetta.remains<=3)&debuff.vendetta.up|buff.the_dreadlords_deceit.stack>=5&cooldown.vendetta.remains>60&cooldown.vendetta.remains<65)
+		if animalsTable.spellIsReady(fan_of_knives) then
+			if animalsTable.aoe and ((animalsTable.playerCount(10, _, 2+(animalsTable.aura("target", vendetta, "", "PLAYER") and 1 or 0), ">=") and (combo_points("deficit") >= 1 or energy("deficit") <= 30)) or (animalsTable.getTraitCurrentRank(artifact, bag_of_tricks) == 0 and animalsTable.playerCount(10, _, 7+2*(animalsTable.aura("target", vendetta, "", "PLAYER") and 1 or 0), ">="))) then animalsTable.cast(_, fan_of_knives, false, false, false, "SpellToInterrupt", "Fan of Knives") return end
+			-- actions.build_noex+=/fan_of_knives,if=(debuff.vendetta.up&buff.the_dreadlords_deceit.stack>=29-(debuff.vendetta.remains<=3)*14)|(cooldown.vendetta.remains>60&cooldown.vendetta.remains<65&buff.the_dreadlords_deceit.stack>=5)
+		end
 		-- actions.build_noex+=/hemorrhage,if=combo_points.deficit>=1&refreshable
-		if animalsTable.spellCanAttack(mutilate) and combo_points("deficit") >= 1 and animalsTable.spellCDDuration(garrote) > 2 then animalsTable.cast(_, mutilate, false, false, false, "SpellToInterrupt", "Mutilate: Garrote CD > 2") return end
+		if animalsTable.spellCanAttack(mutilate) and combo_points("deficit") >= 1 and animalsTable.spellCDDuration(garrote) > 2 then animalsTable.cast(_, mutilate, false, false, false, "SpellToInterrupt", "Mutilate") return end
 	end
 
-	local function cds()
-		-- # Cooldowns
-		-- actions.cds=marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|combo_points.deficit>=5
-		-- actions.cds+=/vendetta,if=target.time_to_die<20
-		-- actions.cds+=/vendetta,if=artifact.urge_to_kill.enabled&dot.rupture.ticking&(!talent.exsanguinate.enabled|cooldown.exsanguinate.remains<5)&(energy<55|time<10|spell_targets.fan_of_knives>=2)
-		-- actions.cds+=/vendetta,if=!artifact.urge_to_kill.enabled&dot.rupture.ticking&(!talent.exsanguinate.enabled|cooldown.exsanguinate.remains<1)
-		-- actions.cds+=/vanish,if=talent.subterfuge.enabled&combo_points<=2&!dot.rupture.exsanguinated|talent.shadow_focus.enabled&!dot.rupture.exsanguinated&combo_points.deficit>=2
-		-- actions.cds+=/vanish,if=!talent.exsanguinate.enabled&talent.nightstalker.enabled&combo_points>=5+talent.deeper_stratagem.enabled&energy>=25&gcd.remains=0
+	function animalsTable.ROGUE1()
+		if UnitAffectingCombat("player") then
+			animalsTable.multiDoT(GetSpellInfo(rupture), 40)
+			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(kick) then animalsTable.interruptFunction(nil, kick) else animalsTable.interruptFunction() end end
+				if animalsTable.cds then
+					-- actions=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|debuff.vendetta.up
+					-- actions+=/blood_fury,if=debuff.vendetta.up
+					-- actions+=/berserking,if=debuff.vendetta.up
+					-- actions+=/arcane_torrent,if=debuff.vendetta.up&energy.deficit>50
+				end
+				cds()
+				-- actions+=/rupture,if=talent.exsanguinate.enabled&combo_points>=2+artifact.urge_to_kill.enabled*2&!ticking&(artifact.urge_to_kill.enabled|time<10)
+				if animalsTable.getTraitCurrentRank(artifact, kingsbane) == 1 and (not animalsTable.talent63 and (animalsTable.aura("target", vendetta, "", "PLAYER") or animalsTable.spellCDDuration(vendetta) > 10) or (animalsTable.talent63 and dot.rupture.exsanguinated)) then
+					if animalsTable.poolCheck(kingsbane) then return end
+					if animalsTable.spellCanAttack(kingsbane) then animalsTable.cast(_, kingsbane, false, false, false, "SpellToInterrupt", "Kingsbane") return end
+				end
+				-- actions+=/run_action_list,name=exsang_combo,if=talent.exsanguinate.enabled&cooldown.exsanguinate.remains<3&(debuff.vendetta.up|cooldown.vendetta.remains>25)
+				if not animalsTable.aoe or animalsTable.playerCount(10, _, (8-animalsTable.getTraitCurrentRank(artifact, bag_of_tricks)), "<=") then
+					garrote_apl()
+				end
+				-- actions+=/call_action_list,name=exsang,if=dot.rupture.exsanguinated
+				-- actions+=/rupture,if=talent.exsanguinate.enabled&remains-cooldown.exsanguinate.remains<(4+cp_max_spend*4)*0.3&new_duration-cooldown.exsanguinate.remains>=(4+cp_max_spend*4)*0.3+3
+				if animalsTable.talent63 then
+					finish_ex()
+					build_ex()
+				else
+					finish_noex()
+					build_noex()
+				end
+			end
+		else
+		end
 	end
-
-	local function exsang()
-		-- # Exsanguinated Finishers
-		-- actions.exsang=rupture,cycle_targets=1,max_cycle_targets=14-2*artifact.bag_of_tricks.enabled,if=!ticking&combo_points>=cp_max_spend-1&spell_targets.fan_of_knives>1&target.time_to_die-remains>6
-		-- actions.exsang+=/rupture,if=combo_points>=cp_max_spend&ticks_remain<2
-		-- actions.exsang+=/death_from_above,if=combo_points>=cp_max_spend-1&(dot.rupture.remains>3|dot.rupture.remains>2&spell_targets.fan_of_knives>=3)&(artifact.bag_of_tricks.enabled|spell_targets.fan_of_knives<=6+2*debuff.vendetta.up)
-		-- actions.exsang+=/envenom,if=combo_points>=cp_max_spend-1&(dot.rupture.remains>3|dot.rupture.remains>2&spell_targets.fan_of_knives>=3)&(artifact.bag_of_tricks.enabled|spell_targets.fan_of_knives<=6+2*debuff.vendetta.up)
-	end
-
-	local function exsang_combo()
-		-- # Exsanguinate Combo
-		-- actions.exsang_combo=vanish,if=talent.nightstalker.enabled&combo_points>=cp_max_spend&cooldown.exsanguinate.remains<1&gcd.remains=0&energy>=25
-		-- actions.exsang_combo+=/rupture,if=combo_points>=cp_max_spend&(!talent.nightstalker.enabled|buff.vanish.up|cooldown.vanish.remains>15)&cooldown.exsanguinate.remains<1
-		-- actions.exsang_combo+=/exsanguinate,if=prev_gcd.rupture&dot.rupture.remains>22+4*talent.deeper_stratagem.enabled&cooldown.vanish.remains>10
-		-- actions.exsang_combo+=/call_action_list,name=garrote,if=spell_targets.fan_of_knives<=8-artifact.bag_of_tricks.enabled
-		-- actions.exsang_combo+=/hemorrhage,if=spell_targets.fan_of_knives>=2&!ticking
-		-- actions.exsang_combo+=/call_action_list,name=build_ex
-	end
-
-	local function finish_ex()
-		-- # Finishers Exsanguinate
-		-- actions.finish_ex=rupture,cycle_targets=1,max_cycle_targets=14-2*artifact.bag_of_tricks.enabled,if=!ticking&combo_points>=cp_max_spend-1&spell_targets.fan_of_knives>1&target.time_to_die-remains>6
-		-- actions.finish_ex+=/rupture,if=combo_points>=cp_max_spend-1&refreshable&!exsanguinated
-		-- actions.finish_ex+=/death_from_above,if=combo_points>=cp_max_spend-1&(artifact.bag_of_tricks.enabled|spell_targets.fan_of_knives<=6)
-		-- actions.finish_ex+=/envenom,if=combo_points>=cp_max_spend-1&!dot.rupture.refreshable&buff.elaborate_planning.remains<2&energy.deficit<40&(artifact.bag_of_tricks.enabled|spell_targets.fan_of_knives<=6)
-		-- actions.finish_ex+=/envenom,if=combo_points>=cp_max_spend&!dot.rupture.refreshable&buff.elaborate_planning.remains<2&cooldown.garrote.remains<1&(artifact.bag_of_tricks.enabled|spell_targets.fan_of_knives<=6)
-	end
-
-	local function finish_noex()
-		-- # Finishers no Exsanguinate
-		-- actions.finish_noex=variable,name=envenom_condition,value=!(dot.rupture.refreshable&dot.rupture.pmultiplier<1.5)&(!talent.nightstalker.enabled|cooldown.vanish.remains>=6)&dot.rupture.remains>=6&buff.elaborate_planning.remains<1.5&(artifact.bag_of_tricks.enabled|spell_targets.fan_of_knives<=6)
-		-- actions.finish_noex+=/rupture,cycle_targets=1,max_cycle_targets=14-2*artifact.bag_of_tricks.enabled,if=!ticking&combo_points>=cp_max_spend&spell_targets.fan_of_knives>1&target.time_to_die-remains>6
-		-- actions.finish_noex+=/rupture,if=combo_points>=cp_max_spend&(((dot.rupture.refreshable)|dot.rupture.ticks_remain<=1)|(talent.nightstalker.enabled&buff.vanish.up))
-		-- actions.finish_noex+=/death_from_above,if=(combo_points>=5+talent.deeper_stratagem.enabled-2*talent.elaborate_planning.enabled)&variable.envenom_condition&(refreshable|talent.elaborate_planning.enabled&!buff.elaborate_planning.up|cooldown.garrote.remains<1)
-		-- actions.finish_noex+=/envenom,if=(combo_points>=5+talent.deeper_stratagem.enabled-2*talent.elaborate_planning.enabled)&variable.envenom_condition&(refreshable|talent.elaborate_planning.enabled&!buff.elaborate_planning.up|cooldown.garrote.remains<1)
-	end
-
-	local function garrote()
-		-- # Garrote
-		-- actions.garrote=pool_resource,for_next=1
-		-- actions.garrote+=/garrote,cycle_targets=1,if=talent.subterfuge.enabled&!ticking&combo_points.deficit>=1&spell_targets.fan_of_knives>=2
-		-- actions.garrote+=/pool_resource,for_next=1
-		-- actions.garrote+=/garrote,if=combo_points.deficit>=1&!exsanguinated
-	end
-
-	-- # Executed every time the actor is available.
-	-- actions=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|debuff.vendetta.up
-	-- actions+=/use_item,slot=trinket1,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
-	-- actions+=/use_item,slot=trinket2,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
-	-- actions+=/blood_fury,if=debuff.vendetta.up
-	-- actions+=/berserking,if=debuff.vendetta.up
-	-- actions+=/arcane_torrent,if=debuff.vendetta.up&energy.deficit>50
-	-- actions+=/call_action_list,name=cds
-	-- actions+=/rupture,if=combo_points>=2&!ticking&time<10&!artifact.urge_to_kill.enabled&talent.exsanguinate.enabled
-	-- actions+=/rupture,if=combo_points>=4&!ticking&talent.exsanguinate.enabled
-	-- actions+=/pool_resource,for_next=1
-	-- actions+=/kingsbane,if=!talent.exsanguinate.enabled&(buff.vendetta.up|cooldown.vendetta.remains>10)|talent.exsanguinate.enabled&dot.rupture.exsanguinated
-	-- actions+=/run_action_list,name=exsang_combo,if=cooldown.exsanguinate.remains<3&talent.exsanguinate.enabled&(buff.vendetta.up|cooldown.vendetta.remains>25)
-	-- actions+=/call_action_list,name=garrote,if=spell_targets.fan_of_knives<=8-artifact.bag_of_tricks.enabled
-	-- actions+=/call_action_list,name=exsang,if=dot.rupture.exsanguinated
-	-- actions+=/rupture,if=talent.exsanguinate.enabled&remains-cooldown.exsanguinate.remains<(4+cp_max_spend*4)*0.3&new_duration-cooldown.exsanguinate.remains>=(4+cp_max_spend*4)*0.3+3
-	-- actions+=/call_action_list,name=finish_ex,if=talent.exsanguinate.enabled
-	-- actions+=/call_action_list,name=finish_noex,if=!talent.exsanguinate.enabled
-	-- actions+=/call_action_list,name=build_ex,if=talent.exsanguinate.enabled
-	-- actions+=/call_action_list,name=build_noex,if=!talent.exsanguinate.enabled
 end
 
 do -- Outlaw
@@ -178,21 +218,37 @@ do -- Outlaw
 
 	local artifact                 = 128872
 	local curse_of_the_dreadblades = 202665
+	local blunderbuss = 0
 
+	local greenskins_waterlogged_wristcuffs = 0
 	local shivarran_symmetry       = 141321
 
 
+	local bf_cd = 0
+	function setBF_CD(value)
+		bf_cd = value
+	end
+
 	local function bf()
-		-- if animalsTable.aura("player", blade_flurry) then
-		-- 	if not animalsTable.aoe or animalsTable.equippedGear.Hands == shivarran_symmetry and animalsTable.spellCDDuration(blade_flurry) == 0 and animalsTable.playerCount(8, _, 1, ">") or #animalsTable.smartAoE(40, 8, true, true) < 2 then CancelUnitBuff("player", "Blade Flurry") return end
-		-- else
-		-- 	if animalsTable.aoe and animalsTable.spellIsReady(blade_flurry) and animalsTable.playerCount(8, _, 1, ">") and not animalsTable.aura("player", blade_flurry) then animalsTable.cast(_, blade_flurry, false, false, false, "SpellToInterrupt", "Blade Flurry") return end
-		-- end
+		if bf_cd > 0 then return end
+		if animalsTable.aura("player", blade_flurry) then
+			if not animalsTable.aoe or animalsTable.equippedGear.Hands == shivarran_symmetry and animalsTable.spellCDDuration(blade_flurry) == 0 and animalsTable.playerCount(8, _, 1, ">") or #animalsTable.smartAoE(40, 8, true, true) < 2 then
+				bf_cd = 1
+				CancelUnitBuff("player", "Blade Flurry")
+				return
+			end
+		else
+			if animalsTable.aoe and animalsTable.spellIsReady(blade_flurry) and animalsTable.playerCount(8, _, 1, ">") and not animalsTable.aura("player", blade_flurry) then
+				bf_cd = 1
+				animalsTable.cast(_, blade_flurry, false, false, false, "SpellToInterrupt", "Blade Flurry")
+				return
+			end
+		end
 	end
 
 	local function build()
 		if animalsTable.talent11 and animalsTable.spellCanAttack(ghostly_strike) and combo_points("deficit") >= 1 + (animalsTable.aura("player", broadsides) and 1 or 0) and not animalsTable.aura("player", curse_of_the_dreadblades) and (animalsTable.auraRemaining("target", ghostly_strike, 4.5, "", "PLAYER") or (animalsTable.spellCDDuration(curse_of_the_dreadblades) < 3 and animalsTable.auraRemaining("target", ghostly_strike, 14, "", "PLAYER"))) and (combo_points() >= 3 or (rtb_reroll and (GetTime()-animalsTable.combatStartTime) >=10)) then animalsTable.cast(_, ghostly_strike, _, _, _, _, "Ghostly Strike") return end
-		if animalsTable.spellCanAttack(pistol_shot) and combo_points("deficit") >= 1 + (animalsTable.aura("player", broadsides) and 1 or 0) and animalsTable.aura("player", opportunity) and energy("tomax") > 2-(animalsTable.talent13 and 1 or 0) then animalsTable.cast(_, pistol_shot, _, _, _, _, "Pistol Shot") return end
+		if animalsTable.spellCanAttack(pistol_shot) and combo_points("deficit") >= 1 + (animalsTable.aura("player", broadsides) and 1 or 0) and animalsTable.aura("player", opportunity) and (energy("tomax") > 2-(animalsTable.talent13 and 1 or 0) or animalsTable.aura("player", blunderbuss) and animalsTable.aura("player", greenskins_waterlogged_wristcuffs)) then animalsTable.cast(_, pistol_shot, _, _, _, _, "Pistol Shot") return end
 		if animalsTable.spellCanAttack(saber_slash) and ss_useable then animalsTable.cast(_, saber_slash, _, _, _, _, "Saber Slash") return end
 	end
 
@@ -208,13 +264,23 @@ do -- Outlaw
 		if animalsTable.cds then
 			if animalsTable.spellIsReady(adrenaline_rush) and not animalsTable.aura("player", adrenaline_rush) and energy("deficit") > 0 then animalsTable.cast("target", adrenaline_rush, false, false, false, "SpellToInterrupt", "Adrenaline Rush") return end
 		end
-		-- actions.cds+=/marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|((raid_event.adds.in>40|buff.true_bearing.remains>15)&combo_points.deficit>=4+talent.deeper_strategem.enabled+talent.anticipation.enabled)
+		if (not animalsDataPerChar.markedForDeath or animalsTable.cds) and animalsTable.talent72 and animalsTable.spellIsReady(marked_for_death) then
+			table.sort(animalsTable.targetAnimals, animalsTable.sortAnimalsByLowestTTD)
+            check = combo_points("deficit") >= 4+((animalsTable.talent31 or animalsTable.talent32) and 1 or 0)
+            for i = 1, animalsTable.animalsSize do
+            	rotationUnitIterator = animalsTable.targetAnimals[i]
+            	if animalsTable.getTTD(rotationUnitIterator) == math.huge then break end
+            	if animalsTable.spellCanAttack(marked_for_death, rotationUnitIterator) and (check and (select(2, GetInstanceInfo()) ~= "none" or 
+
+            		--[[raid_event.adds.in>40 or ]]not animalsTable.auraRemaining("player", true_bearing, 15)) or animalsTable.getTTD(rotationUnitIterator) < combo_points("deficit")) then animalsTable.cast(rotationUnitIterator, marked_for_death, false, false, false, "SpellToInterrupt", "Marked for Death") return end
+            end
+		end
 		-- actions.cds+=/sprint,if=equipped.thraxis_tricksy_treads&!variable.ss_useable
-		-- actions.cds+=/curse_of_the_dreadblades,if=combo_points.deficit>=4&(!talent.ghostly_strike.enabled|debuff.ghostly_strike.up)
+		if animalsTable.cds and animalsTable.getTraitCurrentRank(artifact, curse_of_the_dreadblades) > 0 and animalsTable.spellIsReady(curse_of_the_dreadblades) and combo_points("deficit") >= 4 and (not animalsTable.talent11 or animalsTable.aura("target", ghostly_strike, "", "PLAYER")) then animalsTable.cast(_, curse_of_the_dreadblades, false, false, false, "SpellToInterrupt", "Curse of the Dreadblades") return end
 	end
 
 	local function finish()
-		-- actions.finish=between_the_eyes,if=equipped.greenskins_waterlogged_wristcuffs&buff.shark_infested_waters.up
+		-- actions.finish=between_the_eyes,if=equipped.greenskins_waterlogged_wristcuffs&!buff.greenskins_waterlogged_wristcuffs.up
 		if animalsTable.spellCanAttack(run_through) and (not animalsTable.talent73 or energy("tomax") < animalsTable.spellCDDuration(death_from_above)+3.5) then animalsTable.cast(_, run_through, _, _, _, _, "Run Through") return end
 	end
 
@@ -250,10 +316,11 @@ do -- Outlaw
 	function animalsTable.ROGUE2()
 		if UnitAffectingCombat("player") then
 			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(kick) then animalsTable.interruptFunction(nil, kick) else animalsTable.interruptFunction() end end
 				rtb_reroll = not animalsTable.talent71 and (rtb_buffs() <= 1 and not animalsTable.aura("player", true_bearing) and ((not animalsTable.aura("player", curse_of_the_dreadblades) and not animalsTable.aura("player", adrenaline_rush)) or not animalsTable.aura("player", shark_infested_waters)))
 				ss_useable_noreroll = (combo_points() < 5 + (animalsTable.talent31 and 1 or 0) - (animalsTable.aura("player", broadsides) and 1 or animalsTable.aura("player", jolly_roger) and 1 or 0) - (animalsTable.talent62 and not animalsTable.auraStacks("player", alacrity, 5) and 1 or 0))
 				ss_useable = (animalsTable.talent32 and combo_points() < 4) or (not animalsTable.talent32 and ((rtb_reroll and combo_points() < 4 + (animalsTable.talent31 and 1 or 0))  or (not rtb_reroll and ss_useable_noreroll)))
-				bf()
+				-- bf()
 				cds()
 				if IsStealthed() or animalsTable.spellIsReady(vanish) or animalsTable.spellIsReady(shadowmeld) then stealth() end
 				if animalsTable.talent73 and animalsTable.spellCanAttack(death_from_above) and energy("tomax") > 2 and not ss_useable_noreroll then animalsTable.cast(_, death_from_above, _, _, _, _, "Death from Above") return end
@@ -278,6 +345,7 @@ do -- Subtlety
 	local ssw_er
 	local ed_threshold
 	-- talents=2210011
+
 	local backstab            = 53
 	local eviscerate          = 196819
 	local nightblade          = 195452
@@ -294,10 +362,11 @@ do -- Subtlety
 	local marked_for_death    = 137619
 	local subterfuge          = 115192
 
-	local artifact = 0
+	local artifact = 128476
 	local goremaws_bite       = 209782
 	local finality            = 197406
-	local finality_nightblade = 0
+	local finality_nightblade = 197498
+	local finality_eviscerate = 197496
 
 	local shadow_satyrs_walk  = 137032
 
@@ -311,7 +380,6 @@ do -- Subtlety
 		if animalsTable.cds then
 			-- actions.cds=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|buff.shadow_blades.up
 			if IsStealthed() or animalsTable.aura("player", subterfuge) or animalsTable.aura("player", shadow_dance.buff) then
-				-- actions.cds+=/use_item,slot=trinket2,if=stealthed|target.time_to_die<20
 				-- actions.cds+=/blood_fury,if=stealthed
 				-- actions.cds+=/berserking,if=stealthed
 				-- actions.cds+=/arcane_torrent,if=stealthed&energy.deficit>70
@@ -319,25 +387,48 @@ do -- Subtlety
 			if animalsTable.spellIsReady(shadow_blades) and not IsStealthed() and not animalsTable.aura("player", shadow_dance.buff) and not animalsTable.aura("player", subterfuge) and not animalsTable.aura("player", shadowmeld) then animalsTable.cast(_, shadow_blades, _, _, _, _, "Shadow Blades") return end
 		end
 		if animalsTable.getTraitCurrentRank(artifact, goremaws_bite) > 0 and animalsTable.spellCanAttack(goremaws_bite) and not animalsTable.aura("player", shadow_dance.buff) and ((combo_points("deficit") >= 4-((GetTime()-animalsTable.combatStartTime) < 10 and 2 or 0) and energy("deficit") > 50+(animalsTable.talent33 and 25 or 0)-((GetTime()-animalsTable.combatStartTime) >= 10 and 15 or 0)) or animalsTable.animalIsBoss() and animalsTable.getTTD() < 8) then animalsTable.cast(_, goremaws_bite, _, _, _, _, "Goremaw's Bite") return end
-		-- actions.cds+=/marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|(raid_event.adds.in>40&combo_points.deficit>=4+talent.deeper_strategem.enabled+talent.anticipation.enabled)
+		if (not animalsDataPerChar.markedForDeath or animalsTable.cds) and animalsTable.talent72 and animalsTable.spellIsReady(marked_for_death) then
+			table.sort(animalsTable.targetAnimals, animalsTable.sortAnimalsByLowestTTD)
+            check = combo_points("deficit") >= 4+((animalsTable.talent31 or animalsTable.talent32) and 1 or 0)
+            for i = 1, animalsTable.animalsSize do
+            	rotationUnitIterator = animalsTable.targetAnimals[i]
+            	if animalsTable.getTTD(rotationUnitIterator) == math.huge then break end
+            	if animalsTable.spellCanAttack(marked_for_death, rotationUnitIterator) and (check and (--[[raid_event.adds.in>40 or ]]true) or animalsTable.getTTD(rotationUnitIterator) < combo_points("deficit")) then animalsTable.cast(rotationUnitIterator, marked_for_death, false, false, false, "SpellToInterrupt", "Marked for Death") return end
+            end
+		end
+	end
+
+	local function nightblade_check()
+		if #animalsTable.tNightblade == 0 then return true elseif #animalsTable.tNightblade > 1 then return false end
+		local unit = animalsTable.tNightblade[1]
+		if animalsTable.auraRemaining(unit, nightblade, 4.8, "", "PLAYER") and (animalsTable.getTraitCurrentRank(artifact, finality) == 0 or animalsTable.aura("player", finality_nightblade)) or animalsTable.auraRemaining(unit, nightblade, 2, "", "PLAYER") then return true end
+		return false
 	end
 
 	local function finish()
 		if animalsTable.talent63 and animalsTable.spellIsReady(enveloping_shadows) and animalsTable.auraRemaining("player", enveloping_shadows, animalsTable.getTTD()) and animalsTable.auraRemaining("player", enveloping_shadows, combo_points()*1.8) then animalsTable.cast(_, enveloping_shadows, false, false, false, "SpellToInterrupt", "Enveloping Shadows") return end
 		if animalsTable.aoe and animalsTable.talent73 and animalsTable.spellCanAttack(death_from_above) and animalsTable.targetCount(_, 8) >= 6 then animalsTable.cast(_, death_from_above, _, _, _, _, "Death from Above") return end
-		-- if animalsTable.spellIsReady(nightblade) then
-		-- -- 	-- actions.finish+=/nightblade,target_if=max:target.time_to_die,if=target.time_to_die>8&((refreshable&(!finality|buff.finality_nightblade.up))|remains<tick_time)
-		-- 	if not animalsTable.aoe and animalsTable.spellCanAttack(nightblade) and animalsTable.getTTD() > 8 and ((animalsTable.auraRemaining("target", nightblade, 4.8, "", "PLAYER") and (animalsTable.getTraitCurrentRank(artifact, finality) == 0 or animalsTable.aura("player", finality_nightblade))) or animalsTable.auraRemaining("target", nightblade, 2, "", "PLAYER")) then animalsTable.cast(_, nightblade, _, _, _, _, "Nightblade") return end
-		-- end
+		if animalsTable.spellIsReady(nightblade) and nightblade_check() then
+			if animalsTable.spellCanAttack(nightblade) and animalsTable.getTTD() > 8 and animalsTable.getTTD() < math.huge then animalsTable.cast(_, nightblade, _, _, _, _, "Nightblade") return end
+			if animalsTable.aoe then
+				table.sort(animalsTable.targetAnimals, animalsTable.sortAnimalsByHighestTTD)
+				for i = 1, animalsTable.animalsSize do
+					rotationUnitIterator = animalsTable.targetAnimals[i]
+					if animalsTable.getTTD(rotationUnitIterator) > 8 and animalsTable.getTTD(rotationUnitIterator) < math.huge then
+						if animalsTable.spellCanAttack(nightblade, rotationUnitIterator) then animalsTable.cast(rotationUnitIterator, nightblade, _, _, _, _, "Nightblade") return end
+					else
+						break
+					end
+				end
+			end
+		end
 		if animalsTable.talent73 and animalsTable.spellCanAttack(death_from_above) then animalsTable.cast(_, death_from_above, _, _, _, _, "Death from Above") return end
 		if animalsTable.spellCanAttack(eviscerate) then animalsTable.cast(_, eviscerate, _, _, _, _, "Eviscerate") return end
 	end
 
 	local function stealth_cds()
 		if animalsTable.spellIsReady(shadow_dance.spell) and animalsTable.fracCalc("spell", shadow_dance.spell) >= 2.65 then animalsTable.cast(_, shadow_dance.spell, _, _, _, _, "Shadow Dance: Capped Charges") return true end
-		if animalsTable.spellIsReady(vanish) and GetNumGroupMembers() > 1 then
-			if vanishPartyCheck() then animalsTable.cast(_, vanish, false, false, false, "SpellToInterrupt", "Vanish") return end
-		end
+		if animalsTable.spellIsReady(vanish) and vanishPartyCheck() then animalsTable.cast(_, vanish, false, false, false, "SpellToInterrupt", "Vanish") return end
 		if animalsTable.spellIsReady(shadow_dance.spell) and GetSpellCharges(shadow_dance.spell) >= 2 and combo_points() <= 1 then animalsTable.cast(_, shadow_dance.spell, _, _, _, _, "Shadow Dance: Two Charges No CP") return true end
 		if animalsTable.spellIsReady(shadowmeld) and GetNumGroupMembers() > 1 then
 			if vanishPartyCheck() then
@@ -356,8 +447,10 @@ do -- Subtlety
 	end
 
 	function animalsTable.ROGUE3()
-		if UnitAffectingCombat("player") then
+		if UnitAffectingCombat("player") or UnitExists("focus") and UnitAffectingCombat("focus") then
+			animalsTable.multiDoT(GetSpellInfo(nightblade), 40)
 			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(kick) then animalsTable.interruptFunction(nil, kick) else animalsTable.interruptFunction() end end
 				ssw_er = animalsTable.equippedGear.Feet ~= shadow_satyrs_walk and 0 or (10 - math.floor(animalsTable.distanceBetween()*0.5))
 				ed_threshold = energy("deficit") <= (20 + (animalsTable.talent33 and 1 or 0) * 35 + (animalsTable.talent71 and 1 or 0) * 25 + ssw_er)
 				cds()

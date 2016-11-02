@@ -39,8 +39,7 @@ function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player
 		if not animalsDataPerChar.class then animalsDataPerChar.class = select(2, UnitClass("player")) end
 		animalsTable.currentSpec = animalsTable.currentSpec or GetSpecialization()
 		animalsTable.cacheTalents()
-		C_Timer.After(3, animalsTable.cacheGear)
-		-- animalsTable.cacheGear()
+		if not cacheGearQueued then C_Timer.After(3, animalsTable.cacheGear); cacheGearQueued = true end
 		animalsTable.preventSlaying = true
 		animalsTable.targetAnimals = {}
 		animalsTable.targetHumans = {}
@@ -55,8 +54,7 @@ function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player
 	elseif originalEvent == "PLAYER_TALENT_UPDATE" then
 		animalsTable.cacheTalents()
 	elseif originalEvent == "PLAYER_EQUIPMENT_CHANGED" then
-		C_Timer.After(3, animalsTable.cacheGear)
-		-- animalsTable.cacheGear()
+		if not cacheGearQueued then C_Timer.After(3, animalsTable.cacheGear); cacheGearQueued = true end
 	end
 end
 
@@ -89,6 +87,7 @@ local gear = {
 	Waist = 0,
 	Wrist = 0,
 }
+local cacheGearQueued = false
 function animalsTable.cacheGear()
 	for k,v in pairs(gear) do
 	   gear[k] = GetInventoryItemID("player", GetInventorySlotInfo(k.."Slot")) or 0
@@ -105,6 +104,7 @@ function animalsTable.cacheGear()
 		local item_id = C_ArtifactUI.GetArtifactInfo()
 		if not item_id or item_id == 0 then if ArtifactFrame:IsShown() and closeAfter then HideUIPanel(ArtifactFrame) return end end
 		local powers = C_ArtifactUI.GetPowers()
+		if not powers then animalsTable.cacheGear() return end
 		
 		local spellID, perkCost, perkCurrentRank, perkMaxRank, perkBonusRanks, x, y, prereqsMet, isStart, isGoldMedal, isFinal
 		for i = 1, #powers do
@@ -119,6 +119,8 @@ function animalsTable.cacheGear()
 		end
 		if ArtifactFrame:IsShown() and closeAfter then HideUIPanel(ArtifactFrame) end
 	end
+
+	cacheGearQueued = false
 end
 
 function animalsTable.createSlayingFrame()
@@ -180,41 +182,78 @@ function animalsTable.createSlayingInformationFrame()
 	slayingInformationFrame:SetScript("OnUpdate", animalsTable.iterateSlayingInformationFrame)
 end
 
-function animalsTable.iterateSlayingInformationFrame()
+local elapsedTime = 0
+function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 	if not FireHack or animalsTable.preventSlaying or UnitIsDeadOrGhost("player") then return end
 
 	if not animalsDataPerChar.animals and animalsTable.animalsSize > 0 then animalsTable.targetAnimals = {} end
 	if not animalsDataPerChar.humans and animalsTable.humansSize > 0 then animalsTable.targetHumans = {} end
 
+	local zone = GetCurrentMapAreaID()
+
 	animalsTable.animalsSize = #animalsTable.targetAnimals
 	animalsTable.humansSize = #animalsTable.targetHumans
 
-	local unitPlaceholder = nil
-	for i = 1, ObjectCount() do
-	    unitPlaceholder = ObjectWithIndex(i)
-	    if (not animalsDataPerChar.animals or not tContains(animalsTable.targetAnimals, unitPlaceholder)) and (not animalsDataPerChar.humans or animalsTable.humanNotDuplicate(unitPlaceholder))
-	    and ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder)
-	    and bit.band(ObjectType(unitPlaceholder), 0x8) > 0
-	    then
-	        if bit.band(ObjectType(unitPlaceholder), 0x8) > 0 and bit.band(ObjectType(unitPlaceholder), 0x10) == 0 then -- mobs
-	            if animalsDataPerChar.humans and UnitInParty(unitPlaceholder) then -- friendly mobs
-	                if animalsTable.animalsAuraBlacklist(unitPlaceholder) then
-	                    animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
-	                    animalsTable.humansSize = animalsTable.humansSize + 1
-	                end
-	            elseif animalsDataPerChar.animals and not UnitInParty(unitPlaceholder) and animalsTable.health(unitPlaceholder) > 0 and UnitCanAttack("player", unitPlaceholder) then -- hostile mobs
-	                if not tContains(animalsTable.animalNamesToIgnore, UnitName(unitPlaceholder)) and not tContains(animalsTable.animalTypesToIgnore, UnitCreatureType(unitPlaceholder)) and animalsTable.animalsAuraBlacklist(unitPlaceholder) then
-	                    animalsTable.targetAnimals[animalsTable.animalsSize+1] = unitPlaceholder
-	                    animalsTable.animalsSize = animalsTable.animalsSize + 1
-	                end
-	            end
-	        elseif animalsDataPerChar.humans and bit.band(ObjectType(unitPlaceholder), 0x10) > 0 and UnitInParty(unitPlaceholder) then -- friendly players
-	            if animalsTable.humansAuraBlacklist(unitPlaceholder) then
-	                animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
-	                animalsTable.humansSize = animalsTable.humansSize + 1
-	            end
-	        end
-	    end
+	if zone == 1115 then -- Karazhan
+		elapsedTime = elapsedTime + elapsed
+		if elapsedTime < 1 then return end
+		elapsedTime = 0
+	
+		local unitPlaceholder = nil
+		for i = 1, ObjectCount() do
+		    unitPlaceholder = ObjectWithIndex(i)
+		    if (not animalsDataPerChar.animals or not tContains(animalsTable.targetAnimals, unitPlaceholder)) and (not animalsDataPerChar.humans or animalsTable.humanNotDuplicate(unitPlaceholder))
+		    and ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder)
+		    and ObjectIsType(unitPlaceholder, ObjectTypes.Unit)
+		    then
+		        if ObjectIsType(unitPlaceholder, ObjectTypes.Unit) and not ObjectIsType(unitPlaceholder, ObjectTypes.Player) then -- mobs
+		            if animalsDataPerChar.humans and UnitInParty(unitPlaceholder) then -- friendly mobs
+		                if animalsTable.animalsAuraBlacklist(unitPlaceholder) then
+		                    animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
+		                    animalsTable.humansSize = animalsTable.humansSize + 1
+		                end
+		            elseif animalsDataPerChar.animals and not UnitInParty(unitPlaceholder) and animalsTable.health(unitPlaceholder) > 0 and UnitCanAttack("player", unitPlaceholder) then -- hostile mobs
+		                if animalsTable.animalIsTappedByPlayer(unitPlaceholder) and not tContains(animalsTable.animalNamesToIgnore, UnitName(unitPlaceholder)) and not tContains(animalsTable.animalTypesToIgnore, UnitCreatureType(unitPlaceholder)) and animalsTable.animalsAuraBlacklist(unitPlaceholder) then
+		                    animalsTable.targetAnimals[animalsTable.animalsSize+1] = unitPlaceholder
+		                    animalsTable.animalsSize = animalsTable.animalsSize + 1
+		                end
+		            end
+		        elseif animalsDataPerChar.humans and ObjectIsType(unitPlaceholder, ObjectTypes.Player) and UnitInParty(unitPlaceholder) then -- friendly players
+		            if animalsTable.humansAuraBlacklist(unitPlaceholder) then
+		                animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
+		                animalsTable.humansSize = animalsTable.humansSize + 1
+		            end
+		        end
+		    end
+		end
+	else
+		local unitPlaceholder = nil
+		for i = 1, ObjectCount() do
+		    unitPlaceholder = ObjectWithIndex(i)
+		    if (not animalsDataPerChar.animals or not tContains(animalsTable.targetAnimals, unitPlaceholder)) and (not animalsDataPerChar.humans or animalsTable.humanNotDuplicate(unitPlaceholder))
+		    and ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder)
+		    and ObjectIsType(unitPlaceholder, ObjectTypes.Unit)
+		    then
+		        if ObjectIsType(unitPlaceholder, ObjectTypes.Unit) and not ObjectIsType(unitPlaceholder, ObjectTypes.Player) then -- mobs
+		            if animalsDataPerChar.humans and UnitInParty(unitPlaceholder) then -- friendly mobs
+		                if animalsTable.animalsAuraBlacklist(unitPlaceholder) then
+		                    animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
+		                    animalsTable.humansSize = animalsTable.humansSize + 1
+		                end
+		            elseif animalsDataPerChar.animals and not UnitInParty(unitPlaceholder) and animalsTable.health(unitPlaceholder) > 0 and UnitCanAttack("player", unitPlaceholder) then -- hostile mobs
+		                if not tContains(animalsTable.animalNamesToIgnore, UnitName(unitPlaceholder)) and not tContains(animalsTable.animalTypesToIgnore, UnitCreatureType(unitPlaceholder)) and animalsTable.animalsAuraBlacklist(unitPlaceholder) then
+		                    animalsTable.targetAnimals[animalsTable.animalsSize+1] = unitPlaceholder
+		                    animalsTable.animalsSize = animalsTable.animalsSize + 1
+		                end
+		            end
+		        elseif animalsDataPerChar.humans and bit.band(ObjectType(unitPlaceholder), 0x10) > 0 and UnitInParty(unitPlaceholder) then -- friendly players
+		            if animalsTable.humansAuraBlacklist(unitPlaceholder) then
+		                animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
+		                animalsTable.humansSize = animalsTable.humansSize + 1
+		            end
+		        end
+		    end
+		end
 	end
 
 	for i = 1, animalsTable.animalsSize do
@@ -243,7 +282,7 @@ function animalsTable.iterateSlayingInformationFrame()
 
 	for i = 1, animalsTable.animalsSize do
 	    unitPlaceholder = animalsTable.targetAnimals[i]
-	    if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and (UnitAffectingCombat(unitPlaceholder) or tContains(animalsTable.dummiesID, animalsTable.getUnitID(unitPlaceholder))) then
+	    if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and (UnitAffectingCombat(unitPlaceholder) or tContains(animalsTable.dummiesID, ObjectID(unitPlaceholder))) then
 	        animalsTable.TTDF(unitPlaceholder)
 	    end
 	end
@@ -257,7 +296,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	elseif registeredEvent == "PLAYER_REGEN_DISABLED" then
 	    animalsTable.combatStartTime = GetTime()
 	    animalsTable.cacheTalents()
-	    animalsTable.cacheGear()
+	    if not cacheGearQueued then animalsTable.cacheGear(); cacheGearQueued = true end
 	elseif registeredEvent == "PLAYER_REGEN_ENABLED" then
 	    -- animalsTable.MONK.lastCast = 0
 	elseif registeredEvent == "COMBAT_LOG_EVENT_UNFILTERED" then
@@ -294,8 +333,18 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	                return
 	            end
 	    elseif event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH" then
+	    	-- Rogue
+	    		if spellID == 13877 then
+	    			setBF_CD(0)
+	    			return
+	    		end
 	    elseif event == "SPELL_AURA_APPLIED_DOSE" then -- Never seen this before. it's used for buffs that gain stacks without refreshing duration aka void form (mongoose bite?)
 	    elseif event == "SPELL_AURA_REMOVED" then
+	    	-- Rogue
+	    		if spellID == 13877 then
+	    			setBF_CD(0)
+	    			return
+	    		end
 	    elseif event == "SPELL_DAMAGE" then -- projectile unthrottles would go in here
 	    	-- Demon Hunter
 		    	if spellID == 192611 then
@@ -405,6 +454,23 @@ end
                 args = {
                 },
             },
+            Rogue = {
+            	name = "Rogue Settings",
+            	type = "group",
+            	order = 2,
+            	hidden = function() return animalsDataPerChar.class ~= "ROGUE" end,
+            	args = {
+            		MarkedForDeath = {
+            			order = 1,
+            			type = "toggle",
+            			name = "MFD",
+            			desc = "Tie Marked for Death to CDs?",
+            			descStyle = "inline",
+            			get = function() return animalsDataPerChar.markedForDeath end,
+            			set = function(i,v) animalsDataPerChar.markedForDeath = v end
+            		}
+            	}
+        	},
             Debug = {
                 name = "Debug Settings",
                 type = "group",

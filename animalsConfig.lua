@@ -34,12 +34,14 @@ animalsTable.animalTypesToIgnore = {
     "Wild Pet",
     "Pet",
     "Totem",
-    "Not specified",
+    -- "Not specified",
+    -- Creature in the shadows xavius trash is this type
 }
 animalsTable.animalsAurasToIgnore = {
     "Arcane Protection",
     "Water Bubble",
     "Stuff of Nightmares",
+    "Spectral Service",
 }
 animalsTable.humansAurasToIgnore = {
 }
@@ -119,9 +121,9 @@ animalsTable.dummiesID = {
         -- 44937, -- 003
         -- 48304, -- 003
     -- Added in Legion Patches
-        --  92164, -- ??? Training Dummy <Damage>
-        --  92165, -- ??? Dungeoneer's Training Dummy <Damage>
-        --  92166, -- ??? Raider's Training Dummy <Damage>
+         92164, -- ??? Training Dummy <Damage>
+         92165, -- ??? Dungeoneer's Training Dummy <Damage>
+         92166, -- ??? Raider's Training Dummy <Damage>
         --  92167, -- ??? Training Dummy <Healing>
         --  92168, -- ??? Dungeoneer's Training Dummy <Tanking>
         --  92169, -- ??? Raider's Training Dummy <Tanking>

@@ -7,7 +7,7 @@ do -- Combat Check Functions
         if ObjectExists(unit)
         and UnitExists(unit)
         and UnitCanAttack("player", unit)
-        and (animalsTable.health(unit) > 1 or tContains(animalsTable.dummiesID, animalsTable.getUnitID(unit)))
+        and (animalsTable.health(unit) > 1 or tContains(animalsTable.dummiesID, ObjectID(unit)))
         and animalsTable.animalsAuraBlacklist(unit)
         and (not animalsDataPerChar.cced or not animalsTable.unitIsCCed(unit))
         then
@@ -58,7 +58,7 @@ do -- Unit Functions
     function animalsTable.animalIsBoss(unit)
         if not unit then unit = "target" end
         if ObjectExists(unit) and UnitExists(unit) then
-            if tContains(animalsTable.bossIDList, animalsTable.getUnitID(unit)) then
+            if tContains(animalsTable.bossIDList, ObjectID(unit)) then
                 return true
             else
                 return false
@@ -71,7 +71,7 @@ do -- Unit Functions
     function animalsTable.los(guid, other, increase)
         other = other or "player"
         if not ObjectExists(guid) then return false end
-        if tContains(animalsTable.skipLoS, animalsTable.getUnitID(guid)) or tContains(animalsTable.skipLoS, animalsTable.getUnitID(other)) then return true end
+        if tContains(animalsTable.skipLoS, ObjectID(guid)) or tContains(animalsTable.skipLoS, ObjectID(other)) then return true end
         local X1, Y1, Z1 = ObjectPosition(guid)
         local X2, Y2, Z2 = ObjectPosition(other)
         return not TraceLine(X1, Y1, Z1  + (increase or 2), X2, Y2, Z2 + (increase or 2), 0x10);
@@ -659,6 +659,7 @@ do -- AoE Functions
 
     function animalsTable.multiDoT(spell, range)
         local unitPlaceholder = nil
+        local name = ""
         local spelltable = string.gsub(spell, "[%s:]", "")
 
         if not animalsTable["tNoObject"..spelltable] then animalsTable["tNoObject"..spelltable] = {} end
@@ -677,24 +678,49 @@ do -- AoE Functions
             unitPlaceholder = animalsTable["t"..spelltable][i]
             if not tContains(animalsTable.targetAnimals, unitPlaceholder) or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or range and range < animalsTable.distanceBetween(unitPlaceholder) then table.remove(animalsTable["t"..spelltable], i) -- preliminaries
             else
-                local name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
+                name = ""
+                name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
                 if not name then table.remove(animalsTable["t"..spelltable], i) end -- aura is not there
             end
         end
 
-        local unitPlaceholder = nil
         for i = 1, animalsTable.animalsSize do
             unitPlaceholder = animalsTable.targetAnimals[i]
             if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) then
                 unitPlaceholder = animalsTable.targetAnimals[i]
                 if animalsTable.dotCached(unitPlaceholder, spelltable)
-                and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or tContains(animalsTable.dummiesID, animalsTable.getUnitID(unitPlaceholder)))
+                and (animalsTable.animalIsTappedByPlayer(unitPlaceholder) or tContains(animalsTable.dummiesID, ObjectID(unitPlaceholder)))
                 and (not range or range >= animalsTable.distanceBetween(unitPlaceholder)+UnitCombatReach(unitPlaceholder)) then
-                    local name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
+                    name = ""
+                    name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
                     if name then table.insert(animalsTable["t"..spelltable], unitPlaceholder) end
-                    if not name and --[[animalsTable.distanceBetween(unitPlaceholder) <= 50 and ]]UnitCanAttack("player", unitPlaceholder) --[[and animalsTable.los(unitPlaceholder)]] then table.insert(animalsTable["tNoObject"..spelltable], unitPlaceholder) end
+                    if not name and UnitCanAttack("player", unitPlaceholder) --[[and animalsTable.los(unitPlaceholder)]] then table.insert(animalsTable["tNoObject"..spelltable], unitPlaceholder) end
                 end
             end
+        end
+    end
+end
+
+function animalsTable.debugDotCache(spell)
+    local spelltable = string.gsub(spell, "[%s:]", "")
+    if not spelltable then return false end
+
+    local unitPlaceholder = nil
+
+    if not animalsTable["t"..spelltable] then print("Dot Cache was never ran for this spell.") return false end
+    if #animalsTable["t"..spelltable] == 0 then
+        print("No active dots up for this spell.")
+    else
+        for k,v in ipairs(animalsTable["t"..spelltable]) do
+            print("Active DoT", UnitName(v), animalsTable.getTTD(v))
+        end
+    end
+
+    if #animalsTable["tNoObject"..spelltable] == 0 then
+        print("No inactive dots up for this spell.")
+    else
+        for k,v in ipairs(animalsTable["tNoObject"..spelltable]) do
+            print(UnitName(v), animalsTable.getTTD(v))
         end
     end
 end
