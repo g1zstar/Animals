@@ -200,7 +200,6 @@ do -- Windwalker
 	        end
 	        if animalsTable.spellCanAttack(tiger_palm) then animalsTable.cast(_, tiger_palm, _, _, _, _, "Tiger Palm") return end
         end
-		if animalsTable.spellCanAttack(crackling_jade_lightning) and chi("deficit") == 1 and animalsTable.MONK.lastCast == blackout_kick and animalsTable.spellCDDuration(rising_sun_kick) > 1 and animalsTable.spellCDDuration(fists_of_fury) > 1 and animalsTable.spellCDDuration(strike_of_the_windlord) > 1 and (animalsTable.talent61 and animalsTable.spellCDDuration(rushing_jade_wind) > 1 or not animalsTable.talent61) then animalsTable.cast(_, crackling_jade_lightning, _, _, _, _, "Crackling Jade Lightning") return end
 	end
 
 	local function serenity_action_list()

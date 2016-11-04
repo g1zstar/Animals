@@ -38,7 +38,7 @@ function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player
 	if originalEvent == "PLAYER_ENTERING_WORLD" then
 		if not animalsDataPerChar.class then animalsDataPerChar.class = select(2, UnitClass("player")) end
 		animalsTable.currentSpec = animalsTable.currentSpec or GetSpecialization()
-		animalsTable.cacheTalents()
+		if not cacheTalentsQueued then C_Timer.After(3, animalsTable.cacheTalents); cacheTalentsQueued = true end
 		if not cacheGearQueued then C_Timer.After(3, animalsTable.cacheGear); cacheGearQueued = true end
 		animalsTable.preventSlaying = true
 		animalsTable.targetAnimals = {}
@@ -50,20 +50,22 @@ function animalsTable.respondMainFrame(self, originalEvent, ...) -- todo: player
 		animalsTable.monitorAnimationToggle("off")
 	elseif originalEvent == "PLAYER_SPECIALIZATION_CHANGED" then
 		animalsTable.currentSpec = GetSpecialization()
-		animalsTable.cacheTalents()
+		if not cacheTalentsQueued then C_Timer.After(3, animalsTable.cacheTalents); cacheTalentsQueued = true end
 	elseif originalEvent == "PLAYER_TALENT_UPDATE" then
-		animalsTable.cacheTalents()
+		if not cacheTalentsQueued then C_Timer.After(3, animalsTable.cacheTalents); cacheTalentsQueued = true end
 	elseif originalEvent == "PLAYER_EQUIPMENT_CHANGED" then
 		if not cacheGearQueued then C_Timer.After(3, animalsTable.cacheGear); cacheGearQueued = true end
 	end
 end
 
+local cacheTalentsQueued
 function animalsTable.cacheTalents()
 	for i = 1, 7 do
 		for o = 1, 3 do
 			animalsTable["talent"..i..o] = select(4, GetTalentInfo(i, o, 1))
 		end
 	end
+	cacheTalentsQueued = false
 end
 
 local gear = {
@@ -295,7 +297,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	if registeredEvent == "PLAYER_DEAD" then
 	elseif registeredEvent == "PLAYER_REGEN_DISABLED" then
 	    animalsTable.combatStartTime = GetTime()
-	    animalsTable.cacheTalents()
+	    if not cacheTalentsQueued then C_Timer.After(3, animalsTable.cacheTalents); cacheTalentsQueued = true end
 	    if not cacheGearQueued then animalsTable.cacheGear(); cacheGearQueued = true end
 	elseif registeredEvent == "PLAYER_REGEN_ENABLED" then
 	    -- animalsTable.MONK.lastCast = 0

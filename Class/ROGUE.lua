@@ -42,6 +42,38 @@ local function vanishPartyCheck(target)
 end
 
 do -- Assassination
+	--[[update to this
+	actions=exsanguinate,if=prev_gcd.rupture&dot.rupture.remains>4+4*cp_max_spend
+	actions+=/rupture,if=talent.nightstalker.enabled&stealthed
+	actions+=/garrote,if=talent.subterfuge.enabled&stealthed
+	actions+=/call_action_list,name=cds
+	actions+=/rupture,if=talent.exsanguinate.enabled&combo_points>=cp_max_spend&cooldown.exsanguinate.remains<1
+	actions+=/rupture,cycle_targets=1,if=combo_points>=cp_max_spend-talent.exsanguinate.enabled&refreshable&(!exsanguinated|remains<=1.5)&target.time_to_die-remains>4
+	actions+=/kingsbane,if=talent.exsanguinate.enabled&dot.rupture.exsanguinated
+	actions+=/pool_resource,for_next=1
+	actions+=/garrote,cycle_targets=1,if=refreshable&(!exsanguinated|remains<=1.5)&target.time_to_die-remains>4
+	# active_dot.rupture>=spell_targets.fan_of_knives meant that we don't want to envenom as long as we can multi-rupture
+	actions+=/envenom,if=(!talent.exsanguinate.enabled|cooldown.exsanguinate.remains>2)&!dot.rupture.refreshable&active_dot.rupture>=spell_targets.fan_of_knives&((!talent.elaborate_planning.enabled&combo_points>=cp_max_spend)|(talent.elaborate_planning.enabled&combo_points>=3+!talent.exsanguinate.enabled&buff.elaborate_planning.remains<2))
+	actions+=/rupture,if=talent.exsanguinate.enabled&!ticking&(time>10|combo_points>=2+artifact.urge_to_kill.enabled*2)
+	actions+=/hemorrhage,if=refreshable
+	actions+=/hemorrhage,target_if=max:dot.rupture.duration,if=refreshable&dot.rupture.ticking&spell_targets.fan_of_knives<=3
+	actions+=/kingsbane,if=!talent.exsanguinate.enabled&(debuff.vendetta.up|cooldown.vendetta.remains>10)
+	actions+=/fan_of_knives,if=spell_targets>=3|buff.the_dreadlords_deceit.stack>=29
+	actions+=/mutilate,cycle_targets=1,if=(!talent.agonizing_poison.enabled&dot.deadly_poison_dot.refreshable)|(talent.agonizing_poison.enabled&debuff.agonizing_poison.remains<debuff.agonizing_poison.duration*0.3)
+	actions+=/mutilate
+
+	# Cooldowns
+	actions.cds=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|debuff.vendetta.up
+	actions.cds+=/use_item,slot=trinket1,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
+	actions.cds+=/use_item,slot=trinket2,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
+	actions.cds+=/blood_fury,if=debuff.vendetta.up
+	actions.cds+=/berserking,if=debuff.vendetta.up
+	actions.cds+=/arcane_torrent,if=debuff.vendetta.up&energy.deficit>50
+	actions.cds+=/marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|combo_points.deficit>=5
+	actions.cds+=/vendetta,if=talent.exsanguinate.enabled&cooldown.exsanguinate.remains<5&dot.rupture.ticking
+	actions.cds+=/vendetta,if=!talent.exsanguinate.enabled&(!artifact.urge_to_kill.enabled|energy.deficit>=70)
+	actions.cds+=/vanish,if=talent.exsanguinate.enabled&talent.nightstalker.enabled&combo_points>=cp_max_spend&cooldown.exsanguinate.remains<1
+	actions.cds+=/vanish,if=(!talent.exsanguinate.enabled&talent.nightstalker.enabled&combo_points>=cp_max_spend&dot.rupture.refreshable)|(talent.subterfuge.enabled&dot.garrote.refreshable)]]
 	local envenom_condition = false
 	local envenom_precheck = false
 	local rupture_pmultiplier = {}
@@ -451,7 +483,7 @@ do -- Subtlety
 			animalsTable.multiDoT(GetSpellInfo(nightblade), 40)
 			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
 				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(kick) then animalsTable.interruptFunction(nil, kick) else animalsTable.interruptFunction() end end
-				ssw_er = animalsTable.equippedGear.Feet ~= shadow_satyrs_walk and 0 or (10 - math.floor(animalsTable.distanceBetween()*0.5))
+				ssw_er = animalsTable.equippedGear.Feet ~= shadow_satyrs_walk and 0 or (10 + math.floor(animalsTable.distanceBetween()*0.5))
 				ed_threshold = energy("deficit") <= (20 + (animalsTable.talent33 and 1 or 0) * 35 + (animalsTable.talent71 and 1 or 0) * 25 + ssw_er)
 				cds()
 				if IsStealthed() or animalsTable.aura("player", subterfuge) or animalsTable.aura("player", shadow_dance.buff) or animalsTable.aura("player", shadowmeld) then stealthed() return end
