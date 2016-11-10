@@ -20,15 +20,14 @@ function animalsTable.humansAuraBlacklist(object)
 end
 
 function animalsTable.logToFile(message)
-    if animalsDataPerChar.log then
-        local file = ReadFile(animalsTable.logFile)
-        local debugStack = string.gsub(debugstack(2, 100, 100), 'Interface\\AddOns\\Animals\\.-(%w+)%.lua', "file: %1, line")
-        debugStack = string.gsub(debugStack, "\n", ", ")
-        WriteFile(animalsTable.logFile, file..",\n{\n\t"..message.."\n\t\"time\":"..GetTime()..",\n\t\"Line Number\": "..debugStack.."\n}")
-    end
+    local file = ReadFile(animalsTable.logFile)
+    local debugStack = string.gsub(debugstack(2, 100, 100), 'Interface\\AddOns\\Animals\\.-(%w+)%.lua', "file: %1, line")
+    debugStack = string.gsub(debugStack, "\n", ", ")
+    WriteFile(animalsTable.logFile, file..",\n{\n\t"..message.."\n\t\"time\":"..GetTime()..",\n\t\"Line Number\": "..debugStack.."\n}")
 end
 
 function animalsTable.humanNotDuplicate(unitPassed)
+    local unit
     for i = 1, animalsTable.humansSize do
         unit = animalsTable.targetHumans[i].Player
         if unit == unitPassed then return false end
@@ -54,6 +53,7 @@ function animalsTable.logAnimalsToFile()
             )
     end
 end
+
 -- ripped from CommanderSirow of the wowace forums
 function animalsTable.TTDF(unit) -- keep updated: see if this can be optimized
     -- Setup trigger (once)

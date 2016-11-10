@@ -25,7 +25,6 @@ animalsTable.artifactWeapon = {
 
 function animalsTable.createMainFrame()
 	CreateFrame("Frame", "animalsMainFrame", nil)
-	animalsMainFrame:RegisterEvent("PLAYER_LOGIN")
 	animalsMainFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 	animalsMainFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
 	animalsMainFrame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
@@ -121,7 +120,6 @@ function animalsTable.cacheGear()
 		end
 		if ArtifactFrame:IsShown() and closeAfter then HideUIPanel(ArtifactFrame) end
 	end
-
 	cacheGearQueued = false
 end
 
@@ -153,7 +151,6 @@ function animalsTable.startSlaying()
 		print("Animals: No idea how to slay with this combination.\n"..animalsDataPerChar.class..animalsTable.currentSpec)
 		animalsTable.allowSlaying = false
 		animalsTable.monitorAnimationToggle("off")
-
 	end
 end
 
@@ -175,11 +172,15 @@ function animalsTable.createSlayingInformationFrame()
 	animalsTable.combatStartTime = math.huge
 	
 	CreateFrame("Frame", "slayingInformationFrame", animalsMainFrame)
+	-- slayingInformationFrame:RegisterEvent("COMBAT_LOG_EVENT")
+	slayingInformationFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 	slayingInformationFrame:RegisterEvent("PLAYER_DEAD")
 	slayingInformationFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	slayingInformationFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-	slayingInformationFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-	slayingInformationFrame:RegisterEvent("COMBAT_LOG_EVENT")
+	slayingInformationFrame:RegisterEvent("UNIT_SPELLCAST_FAILED")
+	slayingInformationFrame:RegisterEvent("UNIT_SpELLCAST_FAILED_QUIET")
+	slayingInformationFrame:RegisterEvent("UNIT_SPELLCAST_START")
+	slayingInformationFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 	slayingInformationFrame:SetScript("OnEvent", animalsTable.respondSlayingInformationFrame)
 	slayingInformationFrame:SetScript("OnUpdate", animalsTable.iterateSlayingInformationFrame)
 end
@@ -196,17 +197,16 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 	animalsTable.animalsSize = #animalsTable.targetAnimals
 	animalsTable.humansSize = #animalsTable.targetHumans
 
-	if zone == 1115 then -- Karazhan
-		elapsedTime = elapsedTime + elapsed
-		if elapsedTime < 1 then return end
+	elapsedTime = elapsedTime + elapsed
+	if elapsedTime >= 1 or zone ~= 1115 then
 		elapsedTime = 0
-	
+
 		local unitPlaceholder = nil
 		for i = 1, ObjectCount() do
 		    unitPlaceholder = ObjectWithIndex(i)
 		    if (not animalsDataPerChar.animals or not tContains(animalsTable.targetAnimals, unitPlaceholder)) and (not animalsDataPerChar.humans or animalsTable.humanNotDuplicate(unitPlaceholder))
-		    and ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder)
 		    and ObjectIsType(unitPlaceholder, ObjectTypes.Unit)
+		    and UnitExists(unitPlaceholder) and UnitIsVisible(unitPlaceholder)
 		    then
 		        if ObjectIsType(unitPlaceholder, ObjectTypes.Unit) and not ObjectIsType(unitPlaceholder, ObjectTypes.Player) then -- mobs
 		            if animalsDataPerChar.humans and UnitInParty(unitPlaceholder) then -- friendly mobs
@@ -215,7 +215,7 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 		                    animalsTable.humansSize = animalsTable.humansSize + 1
 		                end
 		            elseif animalsDataPerChar.animals and not UnitInParty(unitPlaceholder) and animalsTable.health(unitPlaceholder) > 0 and UnitCanAttack("player", unitPlaceholder) then -- hostile mobs
-		                if animalsTable.animalIsTappedByPlayer(unitPlaceholder) and not tContains(animalsTable.animalNamesToIgnore, UnitName(unitPlaceholder)) and not tContains(animalsTable.animalTypesToIgnore, UnitCreatureType(unitPlaceholder)) and animalsTable.animalsAuraBlacklist(unitPlaceholder) then
+		                if (zone ~= 1115 or animalsTable.animalIsTappedByPlayer(unitPlaceholder)) and not tContains(animalsTable.animalNamesToIgnore, UnitName(unitPlaceholder)) and not tContains(animalsTable.animalTypesToIgnore, UnitCreatureType(unitPlaceholder)) and animalsTable.animalsAuraBlacklist(unitPlaceholder) then
 		                    animalsTable.targetAnimals[animalsTable.animalsSize+1] = unitPlaceholder
 		                    animalsTable.animalsSize = animalsTable.animalsSize + 1
 		                end
@@ -228,39 +228,11 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 		        end
 		    end
 		end
-	else
-		local unitPlaceholder = nil
-		for i = 1, ObjectCount() do
-		    unitPlaceholder = ObjectWithIndex(i)
-		    if (not animalsDataPerChar.animals or not tContains(animalsTable.targetAnimals, unitPlaceholder)) and (not animalsDataPerChar.humans or animalsTable.humanNotDuplicate(unitPlaceholder))
-		    and ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder)
-		    and ObjectIsType(unitPlaceholder, ObjectTypes.Unit)
-		    then
-		        if ObjectIsType(unitPlaceholder, ObjectTypes.Unit) and not ObjectIsType(unitPlaceholder, ObjectTypes.Player) then -- mobs
-		            if animalsDataPerChar.humans and UnitInParty(unitPlaceholder) then -- friendly mobs
-		                if animalsTable.animalsAuraBlacklist(unitPlaceholder) then
-		                    animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
-		                    animalsTable.humansSize = animalsTable.humansSize + 1
-		                end
-		            elseif animalsDataPerChar.animals and not UnitInParty(unitPlaceholder) and animalsTable.health(unitPlaceholder) > 0 and UnitCanAttack("player", unitPlaceholder) then -- hostile mobs
-		                if not tContains(animalsTable.animalNamesToIgnore, UnitName(unitPlaceholder)) and not tContains(animalsTable.animalTypesToIgnore, UnitCreatureType(unitPlaceholder)) and animalsTable.animalsAuraBlacklist(unitPlaceholder) then
-		                    animalsTable.targetAnimals[animalsTable.animalsSize+1] = unitPlaceholder
-		                    animalsTable.animalsSize = animalsTable.animalsSize + 1
-		                end
-		            end
-		        elseif animalsDataPerChar.humans and bit.band(ObjectType(unitPlaceholder), 0x10) > 0 and UnitInParty(unitPlaceholder) then -- friendly players
-		            if animalsTable.humansAuraBlacklist(unitPlaceholder) then
-		                animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
-		                animalsTable.humansSize = animalsTable.humansSize + 1
-		            end
-		        end
-		    end
-		end
 	end
 
 	for i = 1, animalsTable.animalsSize do
 	    unitPlaceholder = animalsTable.targetAnimals[i]
-	    if not animalsDataPerChar.animals or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or animalsTable.health(unitPlaceholder) == 0 or not UnitCanAttack("player", unitPlaceholder) or not animalsTable.animalsAuraBlacklist(unitPlaceholder) then _G["removeTargetAnimals"..i] = true end
+	    if not animalsDataPerChar.animals or not ObjectExists(unitPlaceholder) or UnitIsDeadOrGhost(unitPlaceholder) or not UnitCanAttack("player", unitPlaceholder) or not animalsTable.animalsAuraBlacklist(unitPlaceholder) then _G["removeTargetAnimals"..i] = true end
 	end
 	for i = animalsTable.animalsSize, 1, -1 do
 	    if _G["removeTargetAnimals"..i] then
@@ -270,7 +242,7 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 	end
 	for i = 1, animalsTable.humansSize do
 		unitPlaceholder = animalsTable.targetHumans[i].Player
-		if not animalsDataPerChar.humans or not ObjectExists(unitPlaceholder) or not UnitExists(unitPlaceholder) or UnitName(unitPlaceholder) == "Unknown" then _G["removeTargetHumans"..i] = true end
+		if not animalsDataPerChar.humans or not ObjectExists(unitPlaceholder) or UnitName(unitPlaceholder) == "Unknown" then _G["removeTargetHumans"..i] = true end
 	end
 	for i = animalsTable.humansSize, 1, -1 do
 		if _G["removeTargetHumans"..i] then
@@ -284,12 +256,12 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 
 	for i = 1, animalsTable.animalsSize do
 	    unitPlaceholder = animalsTable.targetAnimals[i]
-	    if ObjectExists(unitPlaceholder) and UnitExists(unitPlaceholder) and (UnitAffectingCombat(unitPlaceholder) or tContains(animalsTable.dummiesID, ObjectID(unitPlaceholder))) then
+	    if ObjectExists(unitPlaceholder) and (UnitAffectingCombat(unitPlaceholder) or tContains(animalsTable.dummiesID, ObjectID(unitPlaceholder))) then
 	        animalsTable.TTDF(unitPlaceholder)
 	    end
 	end
 
-	for k,v in pairs(animalsTable.TTD) do if not ObjectExists(k) or not UnitExists(k) or animalsTable.health(k) == 0 or not UnitCanAttack("player", k) or not animalsTable.animalsAuraBlacklist(k) then animalsTable.TTD[k] = nil end end
+	for k,v in pairs(animalsTable.TTD) do if not ObjectExists(k) or UnitIsDeadOrGhost(k) == 0 or not animalsTable.animalsAuraBlacklist(k) then animalsTable.TTD[k] = nil end end
 end
 
 function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
@@ -297,10 +269,40 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	if registeredEvent == "PLAYER_DEAD" then
 	elseif registeredEvent == "PLAYER_REGEN_DISABLED" then
 	    animalsTable.combatStartTime = GetTime()
-	    if not cacheTalentsQueued then C_Timer.After(3, animalsTable.cacheTalents); cacheTalentsQueued = true end
-	    if not cacheGearQueued then animalsTable.cacheGear(); cacheGearQueued = true end
+	    if not cacheTalentsQueued then C_Timer.After(1, animalsTable.cacheTalents); cacheTalentsQueued = true end
+	    if not cacheGearQueued then C_Timer.After(1, animalsTable.cacheGear); cacheGearQueued = true end
 	elseif registeredEvent == "PLAYER_REGEN_ENABLED" then
 	    -- animalsTable.MONK.lastCast = 0
+	elseif registeredEvent == "UNIT_SPELLCAST_START" then
+		-- local unitID, __, __, __, spellID = ...
+		-- if not UnitIsUnit(unitID, "player") then return end
+	elseif registeredEvent == "UNIT_SPELLCAST_SUCCEEDED" then
+		local unitID, __, __, __, spellID = ...
+		if not UnitIsUnit(unitID, "player") then return end
+		if animalsDataPerChar.class == "MONK" and animalsTable.currentSpec == 3 and tContains(animalsTable.MONK.hitComboTable, spellID) then
+			animalsTable.MONK.lastCast = spellID
+			return
+		end
+	elseif registeredEvent == "UNIT_SpELLCAST_FAILED" then
+		local unitID, __, __, __, spellID = ...
+		if not UnitIsUnit(unitID, "player") then return end
+		animalsTable.logToFile(spellName..": Unthrottling "..failedType)
+
+        -- Demon Hunter
+        	if spellID == 198793 then -- Vengeful Retreat
+        		SetHackEnabled("Fly", false)
+        		return
+        	end
+	elseif registeredEvent == "UNIT_SpELLCAST_FAILED_QUIET" then
+		local unitID, __, __, __, spellID = ...
+		if not UnitIsUnit(unitID, "player") then return end
+		animalsTable.logToFile(spellName..": Unthrottling "..failedType)
+
+        -- Demon Hunter
+        	if spellID == 198793 then -- Vengeful Retreat
+        		SetHackEnabled("Fly", false)
+        		return
+        	end
 	elseif registeredEvent == "COMBAT_LOG_EVENT_UNFILTERED" then
 	    local timeNow = GetTime()
 	    local timeStamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellID, spellName, spellSchool, failedType = ...
@@ -315,26 +317,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	    if sourceName ~= UnitName("player") then return end
         animalsTable.waitForCombatLog = false
 
-	    if event == "SPELL_CAST_START" then
-	    elseif event == "SPELL_CAST_FAILED" then
-	        -- animalsTable.throttleSlaying = 0
-	        animalsTable.logToFile(spellName..": Unthrottling "..failedType)
-
-	        -- Demon Hunter
-	        	if spellID == 198793 then -- Vengeful Retreat
-	        		SetHackEnabled("Fly", false)
-	        		return
-	        	end
-	        return
-	    elseif event == "SPELL_CAST_SUCCESS" then 
-	        -- animalsTable.throttleSlaying = (GetTime()+math.random(animalsDataPerChar.chaosMin, animalsDataPerChar.chaosMax)*.001)+animalsTable.spellCDDuration(61304)
-
-	        -- Monk
-	            if animalsDataPerChar.class == "MONK" and animalsTable.currentSpec == 3 and tContains(animalsTable.MONK.hitComboTable, spellID) then
-	                animalsTable.MONK.lastCast = spellID
-	                return
-	            end
-	    elseif event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH" then
+	    if event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH" then
 	    	-- Rogue
 	    		if spellID == 13877 then
 	    			setBF_CD(0)

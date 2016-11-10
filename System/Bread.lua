@@ -5,7 +5,7 @@ do -- Combat Check Functions
     function animalsTable.validAnimal(unit)
         if not unit then unit = "target" end
         if ObjectExists(unit)
-        and UnitExists(unit)
+        -- and UnitExists(unit)
         and UnitCanAttack("player", unit)
         and (animalsTable.health(unit) > 1 or tContains(animalsTable.dummiesID, ObjectID(unit)))
         and animalsTable.animalsAuraBlacklist(unit)
@@ -570,10 +570,10 @@ do -- AoE Functions
         local units = animalsTable.pullAllies(reach)
         local win = 0
         local winners = {}
-        for _, enemy in ipairs(units) do
+        for __, enemy in ipairs(units) do
             local preliminary = {} -- new
             local neighbors = 0
-            for _, neighbor in ipairs(units) do
+            for __, neighbor in ipairs(units) do
                 if animalsTable.distanceBetween(enemy, neighbor) <= size then
                     table.insert(preliminary, neighbor)
                     neighbors = neighbors + 1
@@ -610,10 +610,10 @@ do -- AoE Functions
         local units = animalsTable.pullEnemies(reach, tapped)
         local win = 0
         local winners = {}
-        for _, enemy in ipairs(units) do
+        for __, enemy in ipairs(units) do
             local preliminary = {} -- new
             local neighbors = 0
-            for _, neighbor in ipairs(units) do
+            for __, neighbor in ipairs(units) do
                 if animalsTable.distanceBetween(enemy, neighbor) <= size then
                     table.insert(preliminary, neighbor) -- new
                     neighbors = neighbors + 1

@@ -41,39 +41,146 @@ local function vanishPartyCheck(target)
 	end
 end
 
-do -- Assassination
-	--[[update to this
-	actions=exsanguinate,if=prev_gcd.rupture&dot.rupture.remains>4+4*cp_max_spend
-	actions+=/rupture,if=talent.nightstalker.enabled&stealthed
-	actions+=/garrote,if=talent.subterfuge.enabled&stealthed
-	actions+=/call_action_list,name=cds
-	actions+=/rupture,if=talent.exsanguinate.enabled&combo_points>=cp_max_spend&cooldown.exsanguinate.remains<1
-	actions+=/rupture,cycle_targets=1,if=combo_points>=cp_max_spend-talent.exsanguinate.enabled&refreshable&(!exsanguinated|remains<=1.5)&target.time_to_die-remains>4
-	actions+=/kingsbane,if=talent.exsanguinate.enabled&dot.rupture.exsanguinated
-	actions+=/pool_resource,for_next=1
-	actions+=/garrote,cycle_targets=1,if=refreshable&(!exsanguinated|remains<=1.5)&target.time_to_die-remains>4
-	# active_dot.rupture>=spell_targets.fan_of_knives meant that we don't want to envenom as long as we can multi-rupture
-	actions+=/envenom,if=(!talent.exsanguinate.enabled|cooldown.exsanguinate.remains>2)&!dot.rupture.refreshable&active_dot.rupture>=spell_targets.fan_of_knives&((!talent.elaborate_planning.enabled&combo_points>=cp_max_spend)|(talent.elaborate_planning.enabled&combo_points>=3+!talent.exsanguinate.enabled&buff.elaborate_planning.remains<2))
-	actions+=/rupture,if=talent.exsanguinate.enabled&!ticking&(time>10|combo_points>=2+artifact.urge_to_kill.enabled*2)
-	actions+=/hemorrhage,if=refreshable
-	actions+=/hemorrhage,target_if=max:dot.rupture.duration,if=refreshable&dot.rupture.ticking&spell_targets.fan_of_knives<=3
-	actions+=/kingsbane,if=!talent.exsanguinate.enabled&(debuff.vendetta.up|cooldown.vendetta.remains>10)
-	actions+=/fan_of_knives,if=spell_targets>=3|buff.the_dreadlords_deceit.stack>=29
-	actions+=/mutilate,cycle_targets=1,if=(!talent.agonizing_poison.enabled&dot.deadly_poison_dot.refreshable)|(talent.agonizing_poison.enabled&debuff.agonizing_poison.remains<debuff.agonizing_poison.duration*0.3)
-	actions+=/mutilate
+-- do -- Assassination
+-- 	local envenom_condition = false
+-- 	local envenom_precheck = false
+-- 	local rupture_pmultiplier = {}
+-- 	-- talents=2110111
 
-	# Cooldowns
-	actions.cds=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|debuff.vendetta.up
-	actions.cds+=/use_item,slot=trinket1,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
-	actions.cds+=/use_item,slot=trinket2,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
-	actions.cds+=/blood_fury,if=debuff.vendetta.up
-	actions.cds+=/berserking,if=debuff.vendetta.up
-	actions.cds+=/arcane_torrent,if=debuff.vendetta.up&energy.deficit>50
-	actions.cds+=/marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|combo_points.deficit>=5
-	actions.cds+=/vendetta,if=talent.exsanguinate.enabled&cooldown.exsanguinate.remains<5&dot.rupture.ticking
-	actions.cds+=/vendetta,if=!talent.exsanguinate.enabled&(!artifact.urge_to_kill.enabled|energy.deficit>=70)
-	actions.cds+=/vanish,if=talent.exsanguinate.enabled&talent.nightstalker.enabled&combo_points>=cp_max_spend&cooldown.exsanguinate.remains<1
-	actions.cds+=/vanish,if=(!talent.exsanguinate.enabled&talent.nightstalker.enabled&combo_points>=cp_max_spend&dot.rupture.refreshable)|(talent.subterfuge.enabled&dot.garrote.refreshable)]]
+-- 	local mutilate = 1329
+-- 	local garrote  = 703
+-- 	local rupture = 1943
+-- 	local envenom = 32645
+-- 	local fan_of_knives = 51723
+-- 	local deadly_poison = 2818
+
+-- 	local vendetta = 79140
+
+-- 	local elaborate_planning = 193641
+-- 	local exsanguinate = 200806
+-- 	local death_from_above = 152150
+-- 	local hemorrhage = 16511
+-- 	local agonizing_poison = 200803
+
+-- 	local artifact = 128870
+-- 	local kingsbane = 192759
+-- 	local bag_of_tricks = 192657
+-- 	local urge_to_kill = 192384
+
+-- 	local function envenom_condition_new()
+-- 		if animalsTable.spellCanAttack(rupture, "target") and animalsTable.auraRemaining("target", rupture, (animalsTable.talent31 and 6 or 7.2), "", "PLAYER") then return false end
+-- 		if animalsTable.aoe then
+-- 			for i = 1, animalsTable.animalsSize do
+-- 				rotationUnitIterator = animalsTable.targetAnimals[i]
+-- 				if animalsTable.spellCanAttack(rupture, rotationUnitIterator) and animalsTable.auraRemaining(rotationUnitIterator, rupture, (animalsTable.talent31 and 6 or 7.2), "", "PLAYER") then return false end
+-- 			end
+-- 		end
+-- 		return true
+-- 	end
+
+-- 	local function cds()
+-- 		if animalsTable.cds then
+-- 			-- actions.cds=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|debuff.vendetta.up
+-- 			-- actions.cds+=/use_item,slot=trinket1,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
+-- 			-- actions.cds+=/use_item,slot=trinket2,if=buff.bloodlust.react|target.time_to_die<=20|debuff.vendetta.up
+-- 			-- actions.cds+=/blood_fury,if=debuff.vendetta.up
+-- 			-- actions.cds+=/berserking,if=debuff.vendetta.up
+-- 			-- actions.cds+=/arcane_torrent,if=debuff.vendetta.up&energy.deficit>50
+-- 			-- actions.cds+=/marked_for_death,target_if=min:target.time_to_die,if=target.time_to_die<combo_points.deficit|combo_points.deficit>=5
+-- 			if animalsTable.spellCanAttack(vendetta) and animalsTable.talent63 and animalsTable.spellCDDuration(exsanguinate) < 5 and animalsTable.aura("target", rupture, "", "PLAYER") then animalsTable.cast(_, vendetta, false, false, false, "SpellToInterrupt", "Vendetta: Exsanguinate") return end
+-- 			if animalsTable.spellCanAttack(vendetta) and not animalsTable.talent63 and (animalsTable.getTraitCurrentRank(artifact, urge_to_kill) == 0 or energy("deficit") >= 70) then animalsTable.cast(_, vendetta, false, false, false, "SpellToInterrupt", "Vendetta") return end
+-- 			if animalsTable.spellIsReady(vanish) and vanishPartyCheck() then
+-- 				if animalsTable.talent63 and animalsTable.talent21 and combo_points() >= (animalsTable.talent31 and 6 or 5) and animalsTable.spellCDDuration(exsanguinate) < 1 then animalsTable.cast(_, vanish, false, false, false, "SpellToInterrupt", "Vanish: Nightstalker Exsanguinate") return end
+-- 				if (not animalsTable.talent63 and animalsTable.talent21 and combo_points() >= (animalsTable.talent31 and 6 or 5) and animalsTable.auraRemaining("target", rupture, (animalsTable.talent31 and 8.4 or 7.2), "", "PLAYER")) or (animalsTable.talent22 and animalsTable.auraRemaining("target", garrote, 5.4, "", "PLAYER")) then animalsTable.cast(_, vanish, false, false, false, "SpellToInterrupt", "Vanish") return end
+-- 			end
+-- 		end
+-- 	end
+
+-- 	function animalsTable.ROGUE1()
+-- 		if UnitAffectingCombat("player") then
+-- 			animalsTable.multiDoT(GetSpellInfo(rupture), 40)
+-- 			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+-- 				if animalsTable.talent63 and animalsTable.spellCanAttack(exsanguinate) and (animalsTable.debugTable["ogSpell"] == rupture or animalsTable.debugTable["ogSpell"] == exsanguinate) and not animalsTable.auraRemaining("target", rupture, 4+4*(animalsTable.talent31 and 6 or 5), "", "PLAYER") then animalsTable.cast(_, exsanguinate, false, false, false, "SpellToInterrupt", "Exsanguinate") return end
+-- 				if animalsTable.spellCanAttack(rupture) and animalsTable.talent21 and IsStealthed() then animalsTable.cast(_, rupture, false, false, false, "SpellToInterrupt", "Rupture: Stealthed") return end
+-- 				-- actions+=/garrote,if=talent.subterfuge.enabled&stealthed
+-- 				cds()
+-- 				if animalsTable.spellCanAttack(rupture) and animalsTable.talent63 and combo_points() >= (animalsTable.talent31 and 6 or 5) and animalsTable.spellCDDuration(exsanguinate) < 1 then animalsTable.cast(_, rupture, false, false, false, "SpellToInterrupt", "Rupture: Exsanguinate Up") return end
+-- 				if animalsTable.spellIsReady(rupture) and combo_points() >= (animalsTable.talent31 and 6 or 5)-1 then
+-- 					if animalsTable.spellCanAttack(rupture) and animalsTable.auraRemaining("target", rupture, (animalsTable.talent31 and 6 or 7.2), "", "PLAYER") and (not animalsTable.talent63 or animalsTable.spellCDDuration(exsanguinate) <= 26 or animalsTable.auraRemaining("target", rupture, 1.5, "", "PLAYER")) and animalsTable.getTTD() < math.huge and animalsTable.getTTD() > 4 then animalsTable.cast(_, rupture, false, false, false, "SpellToInterrupt", "Rupture: AoE") return end
+-- 					table.sort(animalsTable.targetAnimals, animalsTable.sortAnimalsByHighestTTD)
+-- 					if animalsTable.aoe then
+-- 						for i = 1, animalsTable.animalsSize do
+-- 							rotationUnitIterator = animalsTable.targetAnimals[i]
+-- 							if animalsTable.getTTD(rotationUnitIterator) < math.huge and animalsTable.getTTD(rotationUnitIterator) > 4 then
+-- 								if animalsTable.spellCanAttack(rupture, rotationUnitIterator) and animalsTable.auraRemaining(rotationUnitIterator, rupture, (animalsTable.talent31 and 6 or 7.2), "", "PLAYER") and (not animalsTable.talent63 or animalsTable.spellCDDuration(exsanguinate) <= 26 or animalsTable.auraRemaining(rotationUnitIterator, rupture, 1.5, "", "PLAYER")) then animalsTable.cast(rotationUnitIterator, rupture, false, false, false, "SpellToInterrupt", "RUpture: AoE") return end
+-- 							else
+-- 								break
+-- 							end
+-- 						end
+-- 					end
+-- 				end
+-- 				if animalsTable.getTraitCurrentRank(artifact, kingsbane) == 1 and animalsTable.spellCanAttack(kingsbane) and animalsTable.talent63 and animalsTable.aura("target", rupture, "", "PLAYER") and select(6, animalsTable.aura("target", rupture, "", "PLAYER")) < 24 and animalsTable.spellCDDuration(exsanguinate) > 26 then animalsTable.cast(_, kingsbane, false, false, false, "SpellToInterrupt", "Kingsbane: Exsanguinate") return end
+-- 				if animalsTable.spellIsReady(garrote) or animalsTable.poolCheck(garrote) then
+-- 					if animalsTable.auraRemaining("target", garrote, 5.4, "", "PLAYER") and (animalsTable.spellCDDuration(exsanguinate) < 33 or animalsTable.auraRemaining("target", garrote, 1.5, "", "PLAYER")) and animalsTable.getTTD() < math.huge and animalsTable.getTTD() > 4 then
+-- 						if animalsTable.poolCheck(garrote) then return end
+-- 						animalsTable.cast(_, garrote, false, false, false, "SpellToInterrupt", "Garrote")
+-- 						return
+-- 					end
+-- 					for i = 1, animalsTable.animalsSize do
+-- 						rotationUnitIterator = animalsTable.targetAnimals[i]
+-- 						if animalsTable.auraRemaining(rotationUnitIterator, garrote, 5.4, "", "PLAYER") and (animalsTable.spellCDDuration(exsanguinate) < 33 or animalsTable.auraRemaining(rotationUnitIterator, garrote, 1.5, "", "PLAYER")) and animalsTable.getTTD(rotationUnitIterator) < math.huge and animalsTable.getTTD(rotationUnitIterator) > 4 then
+-- 							if animalsTable.poolCheck(garrote) then return end
+-- 							animalsTable.cast(rotationUnitIterator, garrote, false, false, false, "SpellToInterrupt", "Garrote")
+-- 							return
+-- 						end
+-- 					end
+-- 				end
+-- 				if animalsTable.spellCanAttack(envenom) and (not animalsTable.talent63 or animalsTable.spellCDDuration(exsanguinate) > 2) and envenom_condition_new() --[[and (animalsTable.aoe and #animalsTable.tRupture >= animalsTable.playerCount(10)) ]]and ((not animalsTable.talent12 and combo_points() >= (animalsTable.talent31 and 6 or 5)) or (animalsTable.talent12 and combo_points() >= 3+(not animalsTable.talent63 and 1 or 0) and animalsTable.auraRemaining("player", elaborate_planning, 2))) then animalsTable.cast(_, envenom, false, false, false, "SpellToInterrupt", "Envenom") return end
+-- 				if animalsTable.spellCanAttack(rupture) and animalsTable.talent63 and not animalsTable.aura("target", rupture, "", "PLAYER") and ((GetTime()-animalsTable.combatStartTime) > 10 or combo_points() >= 2+(animalsTable.getTraitCurrentRank(artifact, urge_to_kill) == 1 and 2 or 0)) then animalsTable.cast(_, rupture, false, false, false, "SpellToInterrupt", "Rupture: Exsanguinate Keep Up") return end
+-- 				-- actions+=/hemorrhage,if=refreshable
+-- 				-- actions+=/hemorrhage,target_if=max:dot.rupture.duration,if=refreshable&dot.rupture.ticking&spell_targets.fan_of_knives<=3
+-- 				if animalsTable.getTraitCurrentRank(artifact, kingsbane) == 1 and animalsTable.spellCanAttack(kingsbane) and not animalsTable.talent63 and (animalsTable.aura("target", vendetta, "", "PLAYER") or animalsTable.spellCDDuration(vendetta) > 10) then animalsTable.cast(_, kingsbane, false, false, false, "SpellToInterrupt", "Kingsbane: Non Exsanguinate") return end
+-- 				if animalsTable.spellIsReady(fan_of_knives) then
+-- 					if animalsTable.aoe and animalsTable.playerCount(10, _, 3, ">=") then animalsTable.cast(_, fan_of_knives, false, false, false, "SpellToInterrupt", "Fan of Knives: AoE") return end
+-- 					-- actions+=/fan_of_knives,if=buff.the_dreadlords_deceit.stack>=29
+-- 				end
+-- 				if animalsTable.spellIsReady(mutilate) then
+-- 					if animalsTable.spellCanAttack(mutilate) and (not animalsTable.talent61 and animalsTable.auraRemaining("target", deadly_poison, 3.6, "", "PLAYER") or animalsTable.talent61 and animalsTable.auraRemaining("target", agonizing_poison, 3.6, "", "PLAYER")) then animalsTable.cast(_, mutilate, false, false, false, "SpellToInterrupt", "Mutilate: Poisons") return end
+-- 					if animalsTable.aoe then
+-- 						for i = 1, animalsTable.animalsSize do
+-- 							rotationUnitIterator = animalsTable.targetAnimals[i]
+-- 							if animalsTable.spellCanAttack(mutilate, rotationUnitIterator) and (not animalsTable.talent61 and animalsTable.auraRemaining(rotationUnitIterator, deadly_poison, 3.6, "", "PLAYER") or animalsTable.talent61 and animalsTable.auraRemaining(rotationUnitIterator, agonizing_poison, 3.6, "", "PLAYER")) then animalsTable.cast(rotationUnitIterator, mutilate, false, false, false, "SpellToInterrupt", "Mutilate: AoE Poisons") return end
+-- 						end
+-- 					end
+-- 					if animalsTable.spellCanAttack(mutilate) then animalsTable.cast(_, mutilate, false, false, false, "SpellToInterrupt", "Mutilate") return end
+-- 				end
+-- 			end
+-- 		end
+-- 	end
+-- end
+
+-- 33
+
+do -- Assassination
+-- 	--[[update to this
+-- 	actions=exsanguinate,if=prev_gcd.rupture&dot.rupture.remains>4+4*cp_max_spend
+-- 	actions+=/rupture,if=talent.nightstalker.enabled&stealthed
+-- 	actions+=/garrote,if=talent.subterfuge.enabled&stealthed
+-- 	actions+=/call_action_list,name=cds
+-- 	actions+=/rupture,if=talent.exsanguinate.enabled&combo_points>=cp_max_spend&cooldown.exsanguinate.remains<1
+-- 	actions+=/rupture,cycle_targets=1,if=combo_points>=cp_max_spend-talent.exsanguinate.enabled&refreshable&(!exsanguinated|remains<=1.5)&target.time_to_die-remains>4
+-- 	actions+=/kingsbane,if=talent.exsanguinate.enabled&dot.rupture.exsanguinated
+-- 	actions+=/pool_resource,for_next=1
+-- 	actions+=/garrote,cycle_targets=1,if=refreshable&(!exsanguinated|remains<=1.5)&target.time_to_die-remains>4
+-- 	# active_dot.rupture>=spell_targets.fan_of_knives meant that we don't want to envenom as long as we can multi-rupture
+-- 	actions+=/envenom,if=(!talent.exsanguinate.enabled|cooldown.exsanguinate.remains>2)&!dot.rupture.refreshable&active_dot.rupture>=spell_targets.fan_of_knives&((!talent.elaborate_planning.enabled&combo_points>=cp_max_spend)|(talent.elaborate_planning.enabled&combo_points>=3+!talent.exsanguinate.enabled&buff.elaborate_planning.remains<2))
+-- 	actions+=/rupture,if=talent.exsanguinate.enabled&!ticking&(time>10|combo_points>=2+artifact.urge_to_kill.enabled*2)
+-- 	actions+=/hemorrhage,if=refreshable
+-- 	actions+=/hemorrhage,target_if=max:dot.rupture.duration,if=refreshable&dot.rupture.ticking&spell_targets.fan_of_knives<=3
+-- 	actions+=/kingsbane,if=!talent.exsanguinate.enabled&(debuff.vendetta.up|cooldown.vendetta.remains>10)
+-- 	actions+=/fan_of_knives,if=spell_targets>=3|buff.the_dreadlords_deceit.stack>=29
+-- 	actions+=/mutilate,cycle_targets=1,if=(!talent.agonizing_poison.enabled&dot.deadly_poison_dot.refreshable)|(talent.agonizing_poison.enabled&debuff.agonizing_poison.remains<debuff.agonizing_poison.duration*0.3)
+-- 	actions+=/mutilate]]
 	local envenom_condition = false
 	local envenom_precheck = false
 	local rupture_pmultiplier = {}
@@ -84,6 +191,7 @@ do -- Assassination
 	local rupture = 1943
 	local envenom = 32645
 	local fan_of_knives = 51723
+	local deadly_poison = 2818
 
 	local vendetta = 79140
 
@@ -91,6 +199,7 @@ do -- Assassination
 	local exsanguinate = 200806
 	local death_from_above = 152150
 	local hemorrhage = 16511
+	local agonizing_poison = 200803
 
 	local artifact = 128870
 	local kingsbane = 192759
