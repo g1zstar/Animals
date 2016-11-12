@@ -211,7 +211,7 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 		        if ObjectIsType(unitPlaceholder, ObjectTypes.Unit) and not ObjectIsType(unitPlaceholder, ObjectTypes.Player) then -- mobs
 		            if animalsDataPerChar.humans and UnitInParty(unitPlaceholder) then -- friendly mobs
 		                if animalsTable.animalsAuraBlacklist(unitPlaceholder) then
-		                    animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
+		                    animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Role = (ObjectName(unitPlaceholder) == "Oto the Protector" and "TANK" or UnitGroupRolesAssigned(unitPlaceholder))}
 		                    animalsTable.humansSize = animalsTable.humansSize + 1
 		                end
 		            elseif animalsDataPerChar.animals and not UnitInParty(unitPlaceholder) and animalsTable.health(unitPlaceholder) > 0 and UnitCanAttack("player", unitPlaceholder) then -- hostile mobs
@@ -220,9 +220,9 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 		                    animalsTable.animalsSize = animalsTable.animalsSize + 1
 		                end
 		            end
-		        elseif animalsDataPerChar.humans and ObjectIsType(unitPlaceholder, ObjectTypes.Player) and UnitInParty(unitPlaceholder) then -- friendly players
+		        elseif animalsDataPerChar.humans and ObjectIsType(unitPlaceholder, ObjectTypes.Player) and (UnitIsUnit("player", unitPlaceholder) or UnitInParty(unitPlaceholder)) and animalsTable.humanNotDuplicate(unitPlaceholder) then -- friendly players
 		            if animalsTable.humansAuraBlacklist(unitPlaceholder) then
-		                animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Stats = {Position = {true,true,true}}, Role = UnitGroupRolesAssigned(unitPlaceholder)}
+		                animalsTable.targetHumans[animalsTable.humansSize+1] = {Player = unitPlaceholder, Role = UnitGroupRolesAssigned(unitPlaceholder)}
 		                animalsTable.humansSize = animalsTable.humansSize + 1
 		            end
 		        end
@@ -242,7 +242,7 @@ function animalsTable.iterateSlayingInformationFrame(self, elapsed)
 	end
 	for i = 1, animalsTable.humansSize do
 		unitPlaceholder = animalsTable.targetHumans[i].Player
-		if not animalsDataPerChar.humans or not ObjectExists(unitPlaceholder) or UnitName(unitPlaceholder) == "Unknown" then _G["removeTargetHumans"..i] = true end
+		if not animalsDataPerChar.humans or not ObjectExists(unitPlaceholder) or UnitName(unitPlaceholder) == "Unknown" or (not UnitInParty(unitPlaceholder) and not UnitIsUnit("player", unitPlaceholder)) then _G["removeTargetHumans"..i] = true end
 	end
 	for i = animalsTable.humansSize, 1, -1 do
 		if _G["removeTargetHumans"..i] then
@@ -274,11 +274,13 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	elseif registeredEvent == "PLAYER_REGEN_ENABLED" then
 	    -- animalsTable.MONK.lastCast = 0
 	elseif registeredEvent == "UNIT_SPELLCAST_START" then
-		-- local unitID, __, __, __, spellID = ...
-		-- if not UnitIsUnit(unitID, "player") then return end
+		local unitID, __, __, __, spellID = ...
+		if not UnitIsUnit(unitID, "player") then return end
+		animalsTable.throttleSlaying = math.huge
 	elseif registeredEvent == "UNIT_SPELLCAST_SUCCEEDED" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
+		animalsTable.throttleSlaying = 0
 		if animalsDataPerChar.class == "MONK" and animalsTable.currentSpec == 3 and tContains(animalsTable.MONK.hitComboTable, spellID) then
 			animalsTable.MONK.lastCast = spellID
 			return
@@ -286,6 +288,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	elseif registeredEvent == "UNIT_SpELLCAST_FAILED" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
+		animalsTable.throttleSlaying = 0
 		animalsTable.logToFile(spellName..": Unthrottling "..failedType)
 
         -- Demon Hunter
@@ -296,6 +299,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	elseif registeredEvent == "UNIT_SpELLCAST_FAILED_QUIET" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
+		animalsTable.throttleSlaying = 0
 		animalsTable.logToFile(spellName..": Unthrottling "..failedType)
 
         -- Demon Hunter
@@ -456,6 +460,41 @@ end
             		}
             	}
         	},
+        	Priest = {
+        		name = "Priest Settings",
+        		type = "group",
+        		order = 2,
+        		hidden = function() return animalsDataPerChar.class ~= "PRIEST" end,
+        		args = {
+        			PowerWordRadiancePercent = {
+        				order = 1,
+        				type = "range",
+        				name = "Power Word Radiance Health Percent",
+        				softMin = 3,
+        				softMax = 10,
+        				get = function() return animalsDataPerChar.powerRadiancePercent end,
+        				set = function(i,v) animalsDataPerChar.powerRadiancePercent = v end,
+        			},
+        			PleaPartyPercent = {
+        				order = 1,
+        				type = "range",
+        				name = "Plea Health Percent",
+        				softMin = 1,
+        				softMax = 5,
+        				get = function() return animalsDataPerChar.pleaPercent end,
+        				set = function(i,v) animalsDataPerChar.pleaPercent = v end,
+        			},
+        			ShadowMendPercent = {
+        				order = 1,
+        				type = "range",
+        				name = "Shadow Mend Health Percent",
+        				softMin = 1,
+        				softMax = 3,
+        				get = function() return animalsDataPerChar.shadowMendPercent end,
+        				set = function(i,v) animalsDataPerChar.shadowMendPercent = v end,
+        			},
+        		}
+    		},
             Debug = {
                 name = "Debug Settings",
                 type = "group",

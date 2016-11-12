@@ -24,7 +24,7 @@ local function vanishPartyCheck(target)
 	if select(2, GetInstanceInfo()) ~= "none" and GetNumGroupMembers() > 1 then return true end
 	if not target then target = "target" end
 	local isTanking, status, scaledPercent, rawPercent, threatValue
-	if tContains({1, 2, 19, 23, 24}, select(3, GetInstanceInfo())) then
+	if GetNumGroupMembers() <= 5 then
 		for i = 1, 4 do
 			if UnitExists("party"..i) then
 				isTanking, __, scaledPercent = UnitDetailedThreatSituation(("party"..i), target)

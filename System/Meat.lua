@@ -44,6 +44,17 @@ function animalsTable.sortAnimalsByHighestTTD(a, b)
     return animalsTable.getTTD(a) > animalsTable.getTTD(b)
 end
 
+function animalsTable.sortHumansByRole(a,b)
+    return (a.Role == "TANK" and true or a.Role == "HEALER" and b.Role ~= "TANK" and true or a.Role == "DAMAGER" and b.Role ~= "TANK" and b.Role ~= "HEALER" and true or false)
+    -- retur
+    -- if a.Role == "TANK" then return true elseif a.Role == "Healer" and b.Role ~= "TANK" then return true elseif a.Role == "DAMAGER" and (b.Role == "DAMAGER" or b.Role == "NONE") then return true else return false end
+    -- if not a then return false end
+end
+
+function animalsTable.sortHumansByHealthPercentAscending(a, b)
+    return animalsTable.health(a.Player, _, true) < animalsTable.health(b.Player, _, true)
+end
+
 function animalsTable.logAnimalsToFile()
     local unit
     for i = 1, animalsTable.animalsSize do
