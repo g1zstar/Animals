@@ -330,7 +330,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 		    		animalsTable.setWaitForAura(false)
 		    		return
 		    	end
-		    	
+
 	    	-- Rogue
 	    		if spellID == 13877 then
 	    			setBF_CD(0)
