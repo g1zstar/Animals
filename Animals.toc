@@ -19,5 +19,6 @@ System\Bread.lua
 Class\MONK.lua
 Class\DEMONHUNTER.lua
 Class\ROGUE.lua
+Class\PRIEST.lua
 
 System\Initialize.lua
