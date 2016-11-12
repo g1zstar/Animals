@@ -85,7 +85,7 @@ do -- Marksman
 	function animalsTable.HUNTER2()
 		if UnitAffectingCombat("player") then
 			if animalsTable.isCH() then return end
-			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+			if animalsTable.validAnimal() then
 				-- actions=auto_shot
 				-- actions+=/arcane_torrent,if=focus.deficit>=30&(!talent.sidewinders.enabled|cooldown.sidewinders.charges<2)
 				-- actions+=/blood_fury

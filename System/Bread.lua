@@ -257,12 +257,12 @@ end
 do -- Resources Functions
     function animalsTable.health(guid, max, percent, deficit) -- returns the units max health if max is true, percentage remaining if percent is true and max is false, deficit if deficit is true, or current health
         if not guid then guid = "target" end
-        if max then
-            return UnitHealthMax(guid)
+        if deficit then
+            return UnitHealthMax(guid)-UnitHealth(guid)
         elseif percent then
             return UnitHealth(guid)/UnitHealthMax(guid)*100
-        elseif deficit then
-            return UnitHealthMax(guid)-UnitHealth(guid)
+        elseif max then
+            return UnitHealthMax(guid)
         else
             return UnitHealth(guid)
         end
@@ -699,6 +699,47 @@ do -- AoE Functions
             end
         end
     end
+
+    function animalsTable.multiHoT(spell, range)
+        local unitPlaceholder = nil
+        local name = ""
+        local spelltable = string.gsub(spell, "[%s:]", "")
+
+        if not animalsTable["tNoObject"..spelltable] then animalsTable["tNoObject"..spelltable] = {} end
+        if not animalsTable["t"..spelltable] then animalsTable["t"..spelltable] = {} end
+
+        for i = #animalsTable["tNoObject"..spelltable], 1, -1 do -- delete don't belong
+            unitPlaceholder = animalsTable["tNoObject"..spelltable][i]
+            if not tContains(animalsTable.targetHumans, unitPlaceholder) or not ObjectExists(unitPlaceholder) or range and range < animalsTable.distanceBetween(obj) then
+                table.remove(animalsTable["tNoObject"..spelltable], i) -- preliminaries
+            else -- check for aura
+                local name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
+                if name then table.remove(animalsTable["tNoObject"..spelltable], i) end -- aura is there
+            end
+        end
+        for i = #animalsTable["t"..spelltable], 1, -1 do -- delete don't belong
+            unitPlaceholder = animalsTable["t"..spelltable][i]
+            if not tContains(animalsTable.targetHumans, unitPlaceholder) or not ObjectExists(unitPlaceholder) or range and range < animalsTable.distanceBetween(unitPlaceholder) then table.remove(animalsTable["t"..spelltable], i) -- preliminaries
+            else
+                name = ""
+                name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
+                if not name then table.remove(animalsTable["t"..spelltable], i) end -- aura is not there
+            end
+        end
+
+        for i = 1, animalsTable.humansSize do
+            unitPlaceholder = animalsTable.targetHumans[i]
+            if ObjectExists(unitPlaceholder) then
+                if animalsTable.dotCached(unitPlaceholder, spelltable)
+                and (not range or range >= animalsTable.distanceBetween(unitPlaceholder)+UnitCombatReach(unitPlaceholder)) then
+                    name = ""
+                    name = animalsTable.aura(unitPlaceholder, spell, "", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Feral, Guardian", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Metamorphosis", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Lunar", "PLAYER") or animalsTable.aura(unitPlaceholder, spell, "Solar", "PLAYER")
+                    if name then table.insert(animalsTable["t"..spelltable], unitPlaceholder) end
+                    if not name and UnitCanAttack("player", unitPlaceholder) --[[and animalsTable.los(unitPlaceholder)]] then table.insert(animalsTable["tNoObject"..spelltable], unitPlaceholder) end
+                end
+            end
+        end
+    end
 end
 
 function animalsTable.debugDotCache(spell)
@@ -822,136 +863,180 @@ do -- Artifact Functions
 end
 
 do -- Encounter Functions
---     local zoneTable = {
---         [1041] = { -- Halls of Valor
---             ["Hymdall"] = {
---                 desired_targets = 1,
---                 adds = false,
---             },
---             ["Hyrja"] = {
---                 desired_targets = 1,
---                 adds = false,
---             },
---             ["Fenryr"] = {
---                 desired_targets = 1,
---                 adds = "heroic",
---                 adds_count = 3,
---             },
---             ["God-King Skovald"] = {
---                 desired_targets = 1,
---                 adds = "heroic",
---                 adds_count = 6,
---             },
---             ["Odyn"] = {
---                 desired_targets = 1,
---                 adds = "heroic",
---                 adds_count = 1,
---             },
---         },
---         [1042] = { -- Maw of Souls
---             ["Ymiron, the Fallen King"] = {
---                 desired_targets = 1,
---                 adds = false,
---             },
---             ["Harbaron"] = {
---                 desired_targets = 1,
---                 adds = 2,
---                 adds1_count = 3, -- Fragment
---                 adds2_count = 1, -- Shackled Servitor
---             },
---             ["Helya"] = {
---                 desired_targets = 1,
---                 adds = false, -- ? should we think of phase 1 as adds?
---             },
---         },
---         [1045] = { -- Vault of the Wardens
---             ["Tirathon Saltheril"] = {
---                 desired_targets = 1,
---                 adds = false,
---             },
---             ["Inquisitor Tormentorum"] = {
---                 desired_targets = 1,
---                 adds = true,
---                 adds_count = 3,
---             },
---             ["Ash'golm"] = {
---                 desired_targets = 1,
---                 adds = false, -- embers are a bit hard to account for
---             },
---             ["Glazer"] = {
---                 desired_targets = 1,
---                 adds = false,
---             },
---             ["Cordana Felsong"] = {
---                 desired_targets = 1,
---                 adds = false, -- she is invulnerable whenever there is an add so no adds effectively
---             },
---         },
---         [1046] = { -- Eye of Azshara
---             ["Warlord Parjesh"] = {
---                 desired_targets = 1,
---                 adds = true,
---                 adds_count = 2,
---             },
---             ["Lady Hatecoil"] = {
---                 desired_targets = 1,
---                 adds = true,
---                 adds_count = 5, -- Saltsea Globules how many? believe it's one per player
---             },
---             ["King Deepbeard"] = {
---                 desired_targets = 1,
---                 adds = false,
---                 adds_count = 0,
---             },
---             ["Serpentrix"] = {
---                 desired_targets = 1,
---                 adds = false, -- Heads are too spread apart to serve as adds
---                 adds_count = 0,
---             },
---             ["Wrath of Azshara"] = {
---                 desired_targets = 1,
---                 adds = false,
---                 adds_count = 0,
---             },
---         },
---         [1065] = { -- Neltharion's Lair
---             ["Rokmora"] = {
---                 desired_targets = 1,
---                 adds = false, -- ignore skitters
---                 adds_count = 0,
---             },
---             ["Ularogg Cragshaper"] = {
---                 desired_targets = 1,
---                 adds = false, -- treat idols as adds?
---                 adds_count = 0,
---             },
---             ["Naraxas"] = {
---                 desired_targets = 1,
---                 adds = true,
---                 adds_count = 2, -- ?
---             },
---             ["Dargrul the Underking"] = {
---                 desired_targets = 1,
---                 adds = true,
---                 adds_count = 1,
---             },
---         },
---         [1066] = { -- Assault on Violet Hold
---         },
---         [1067] = { -- Darkheart Thicket
---         },
---         [1079] = { -- The Arcway
---         },
---         [1081] = { -- Black Rook Hold
---         },
---         [1087] = { -- Court of Stars
---         },
+    --     local zoneTable = {
+    --         [1041] = { -- Halls of Valor
+    --             ["Hymdall"] = {
+    --                 desired_targets = 1,
+    --                 adds = false,
+    --             },
+    --             ["Hyrja"] = {
+    --                 desired_targets = 1,
+    --                 adds = false,
+    --             },
+    --             ["Fenryr"] = {
+    --                 desired_targets = 1,
+    --                 adds = "heroic",
+    --                 adds_count = 3,
+    --             },
+    --             ["God-King Skovald"] = {
+    --                 desired_targets = 1,
+    --                 adds = "heroic",
+    --                 adds_count = 6,
+    --             },
+    --             ["Odyn"] = {
+    --                 desired_targets = 1,
+    --                 adds = "heroic",
+    --                 adds_count = 1,
+    --             },
+    --         },
+    --         [1042] = { -- Maw of Souls
+    --             ["Ymiron, the Fallen King"] = {
+    --                 desired_targets = 1,
+    --                 adds = false,
+    --             },
+    --             ["Harbaron"] = {
+    --                 desired_targets = 1,
+    --                 adds = 2,
+    --                 adds1_count = 3, -- Fragment
+    --                 adds2_count = 1, -- Shackled Servitor
+    --             },
+    --             ["Helya"] = {
+    --                 desired_targets = 1,
+    --                 adds = false, -- ? should we think of phase 1 as adds?
+    --             },
+    --         },
+    --         [1045] = { -- Vault of the Wardens
+    --             ["Tirathon Saltheril"] = {
+    --                 desired_targets = 1,
+    --                 adds = false,
+    --             },
+    --             ["Inquisitor Tormentorum"] = {
+    --                 desired_targets = 1,
+    --                 adds = true,
+    --                 adds_count = 3,
+    --             },
+    --             ["Ash'golm"] = {
+    --                 desired_targets = 1,
+    --                 adds = false, -- embers are a bit hard to account for
+    --             },
+    --             ["Glazer"] = {
+    --                 desired_targets = 1,
+    --                 adds = false,
+    --             },
+    --             ["Cordana Felsong"] = {
+    --                 desired_targets = 1,
+    --                 adds = false, -- she is invulnerable whenever there is an add so no adds effectively
+    --             },
+    --         },
+    --         [1046] = { -- Eye of Azshara
+    --             ["Warlord Parjesh"] = {
+    --                 desired_targets = 1,
+    --                 adds = true,
+    --                 adds_count = 2,
+    --             },
+    --             ["Lady Hatecoil"] = {
+    --                 desired_targets = 1,
+    --                 adds = true,
+    --                 adds_count = 5, -- Saltsea Globules how many? believe it's one per player
+    --             },
+    --             ["King Deepbeard"] = {
+    --                 desired_targets = 1,
+    --                 adds = false,
+    --                 adds_count = 0,
+    --             },
+    --             ["Serpentrix"] = {
+    --                 desired_targets = 1,
+    --                 adds = false, -- Heads are too spread apart to serve as adds
+    --                 adds_count = 0,
+    --             },
+    --             ["Wrath of Azshara"] = {
+    --                 desired_targets = 1,
+    --                 adds = false,
+    --                 adds_count = 0,
+    --             },
+    --         },
+    --         [1065] = { -- Neltharion's Lair
+    --             ["Rokmora"] = {
+    --                 desired_targets = 1,
+    --                 adds = false, -- ignore skitters
+    --                 adds_count = 0,
+    --             },
+    --             ["Ularogg Cragshaper"] = {
+    --                 desired_targets = 1,
+    --                 adds = false, -- treat idols as adds?
+    --                 adds_count = 0,
+    --             },
+    --             ["Naraxas"] = {
+    --                 desired_targets = 1,
+    --                 adds = true,
+    --                 adds_count = 2, -- ?
+    --             },
+    --             ["Dargrul the Underking"] = {
+    --                 desired_targets = 1,
+    --                 adds = true,
+    --                 adds_count = 1,
+    --             },
+    --         },
+    --         [1066] = { -- Assault on Violet Hold
+    --         },
+    --         [1067] = { -- Darkheart Thicket
+    --         },
+    --         [1079] = { -- The Arcway
+    --         },
+    --         [1081] = { -- Black Rook Hold
+    --         },
+    --         [1087] = { -- Court of Stars
+    --         },
 
---         [1088] = { -- The Nighthold
---         },
---         [1094] = { -- The Emerald Nightmare
---         },
---     }
+    --         [1088] = { -- The Nighthold
+    --         },
+    --         [1094] = { -- The Emerald Nightmare
+    --         },
+    --     }
 
-    -- function
+        -- function
+end
+
+do -- Tooltip Functions
+    local stringPlaceholderOne, stringPlaceholderTwo
+    local spellName, spellID
+    local captureNumber = 0
+    
+    local function CreateHealingTooltip()
+        animalsTable.healingTooltip = CreateFrame("GameTooltip", "animalsHealingTooltip", nil, "GameTooltipTemplate")
+        animalsHealingTooltip:SetOwner(UIParent, "ANCHOR_NONE")
+    end
+
+    local matchNumber = {
+        [200829] = 1, -- Plea
+        [194509] = 2, -- Power Word: Radiance
+        [186263] = 1, -- Shadow Mend
+        [152118] = 2, -- Clarity of Will
+        [110744] = 2, -- Divine Star
+        [120517] = 2, -- Halo
+        [204065] = 3, -- Shadow Covenant
+    }
+
+    function animalsTable.healingAmount(spell)
+        if not animalsHealingTooltip then CreateHealingTooltip() end
+        if type(spell) == "number" then spellID = spell; spellName = GetSpellInfo(spell) elseif spell == nil then print("\nAnimals: You passed nil to healingAmount()\n") return 0 elseif type(spell) == "string" then print("\nAnimals: Don't pass a string to healingAmount()\n") return 0 end
+        animalsHealingTooltip:ClearLines()
+        animalsHealingTooltip:SetSpellByID(61304)
+        animalsHealingTooltip:SetAlpha(0)
+        if animalsHealingTooltipTextLeft1:GetText() ~= "Global Cooldown" then
+            animalsHealingTooltip:SetOwner(UIParent)
+            animalsHealingTooltip:SetAlpha(0)
+        end
+        animalsHealingTooltip:ClearLines()
+
+        animalsHealingTooltip:SetSpellByID(spellID)
+        animalsHealingTooltip:SetAlpha(0)
+        captureNumber = 0
+        for capture in string.gmatch(string.match(animalsHealingTooltipTextLeft4:GetText(), "Cooldown remaining:") and animalsHealingTooltipTextLeft5:GetText() or animalsHealingTooltipTextLeft4:GetText(), "%d+%p*%d*") do
+            captureNumber = captureNumber + 1
+            if captureNumber == matchNumber[spellID] then stringPlaceholderOne = capture break end
+        end
+        stringPlaceholderOne = string.gsub(stringPlaceholderOne, "%D", "")
+        return tonumber(stringPlaceholderOne)
+    end
 end

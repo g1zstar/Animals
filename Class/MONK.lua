@@ -32,7 +32,7 @@ do -- Brewmaster
 	local energy = animalsTable.pp
 	function animalsTable.MONK1()
 	    if UnitAffectingCombat("player") then
-	        if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+	        if animalsTable.validAnimal() then
 	        	if animalsTable.spellCanAttack(spear_hand_strike) then animalsTable.interruptFunction(nil, spear_hand_strike) else animalsTable.interruptFunction() end
 	            if animalsTable.spellCanAttack(121253) then animalsTable.cast(_, 121253, _, _, _, _, "Keg Smash") return end
 	            if animalsTable.talent13 and animalsTable.spellCanAttack(115098, "player") then animalsTable.cast("player", 115098, _, _, _, _, "Chi Wave") return end
@@ -66,45 +66,6 @@ do -- Mistweaver
 	local tiger_palm                 = 100780
 	local viviy                      = 116670
 	local zen_pulse                  = 0
-
-	local function thunder_focus()
-		-- vivify if not hasbuff(blackflameviviy)
-		-- enveloping mist on tank if not hasbuff (blackflameEnvelopingMist) and canrefreshhot(envelopingmist)
-		-- Renewing Mist on tank if not hasbuff(blackflamerenewingMist) and canrefreshhot(renewingmist)
-		-- Renewing Mist on offtank if not hasbuff(blackflamerenewingMist) and canrefreshhot(renewingmist)
-		-- Renewing Mist on ranged if not hasbuff(blackflamerenewingMist) and canrefreshhot(renewingmist)
-		-- effuse on tank if not hasbuff(blackflameeffuse)
-	end
-
-	local function aoe_max_heal()
-		if animalsTable.spellIsReady(thunder_focus_tea) then animalsTable.cast(_, thunder_focus_tea, _, _, _, _, "Thunder Focus Tea") return end
-		-- if animalsTable.talent11 and animalsTable.spellIsReady(chi_burst) then animalsTable.cast(_, chi_burst, _, _, _, _, "Chi Burst") return end
-		if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
-			if animalsTable.spellCanAttack(blackout_kick) and animalsTable.auraStacks("player", teachings_of_the_monastery, 3) then animalsTable.cast(_, blackout_kick, _, _, _, _, "Blackout Kick") return end
-			if animalsTable.spellCanAttack(rising_sun_kick) and animalsTable.spellCDDuration(thunder_focus_tea) > 12/(1+GetHaste()*.01)/2 and not animalsTable.aura("player", thunder_focus_tea) then animalsTable.cast(_, rising_sun_kick, _, _, _, _, "Rising Sun Kick") return end
-		end
-		-- Zen Pulse
-		-- Mistwalk if chargesremaining == maxcharges
-		if animalsTable.talent61 and animalsTable.spellIsReady(refreshing_jade_wind) then animalsTable.cast(_, refreshing_jade_wind, _, _, _, _, "Refreshing Jade Wind") return end
-		-- thunder_focus()
-		-- vivify on tank if hasbuff(blackflameviviy)
-		-- renewingmist on tank if canrefreshhot(renewingmist)
-		-- renewingmist on offtank if canrefreshhot(renewingmist)
-		-- essence_font on melee if power > maxpower*0.1
-		-- effuse on tank if hasbuff(blackflameeffuse)
-		-- mistwalk
-		if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying and animalsTable.spellCanAttack(tiger_palm) then animalsTable.cast(_, tiger_palm, _, _, _, _, "Tiger Palm") return end
-	end
-
-	local function max_heal()
-	end
-
-	function animalsTable.MONK2()
-		if UnitAffectingCombat("player") or UnitExists("focus") and UnitAffectingCombat("focus") then
-			animalsTable.interruptFunction()
-			aoe_max_heal()
-		end
-	end
 end
 
 do -- Windwalker
@@ -255,7 +216,7 @@ do -- Windwalker
 		if UnitAffectingCombat("player") then
 			if UnitChannelInfo("player") == "Crackling Jade Lightning" then SpellStopCasting() return end
 			if animalsTable.isCH() then return end
-			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+			if animalsTable.validAnimal() then
 				-- actions=auto_attack
 				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(spear_hand_strike) then animalsTable.interruptFunction(nil, spear_hand_strike) else animalsTable.interruptFunction() end end
 				-- actions+=/potion,name=old_war,if=buff.serenity.up|buff.storm_earth_and_fire.up|(!talent.serenity.enabled&trinket.proc.agility.react)|buff.bloodlust.react|target.time_to_die<=60

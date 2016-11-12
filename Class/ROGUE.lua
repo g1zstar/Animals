@@ -99,7 +99,7 @@ end
 -- 	function animalsTable.ROGUE1()
 -- 		if UnitAffectingCombat("player") then
 -- 			animalsTable.multiDoT(GetSpellInfo(rupture), 40)
--- 			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+-- 			if animalsTable.validAnimal() then
 -- 				if animalsTable.talent63 and animalsTable.spellCanAttack(exsanguinate) and (animalsTable.debugTable["ogSpell"] == rupture or animalsTable.debugTable["ogSpell"] == exsanguinate) and not animalsTable.auraRemaining("target", rupture, 4+4*(animalsTable.talent31 and 6 or 5), "", "PLAYER") then animalsTable.cast(_, exsanguinate, false, false, false, "SpellToInterrupt", "Exsanguinate") return end
 -- 				if animalsTable.spellCanAttack(rupture) and animalsTable.talent21 and IsStealthed() then animalsTable.cast(_, rupture, false, false, false, "SpellToInterrupt", "Rupture: Stealthed") return end
 -- 				-- actions+=/garrote,if=talent.subterfuge.enabled&stealthed
@@ -291,7 +291,7 @@ do -- Assassination
 	function animalsTable.ROGUE1()
 		if UnitAffectingCombat("player") then
 			animalsTable.multiDoT(GetSpellInfo(rupture), 40)
-			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+			if animalsTable.validAnimal() then
 				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(kick) then animalsTable.interruptFunction(nil, kick) else animalsTable.interruptFunction() end end
 				if animalsTable.cds then
 					-- actions=potion,name=old_war,if=buff.bloodlust.react|target.time_to_die<=25|debuff.vendetta.up
@@ -456,7 +456,7 @@ do -- Outlaw
 
 	function animalsTable.ROGUE2()
 		if UnitAffectingCombat("player") then
-			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+			if animalsTable.validAnimal() then
 				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(kick) then animalsTable.interruptFunction(nil, kick) else animalsTable.interruptFunction() end end
 				rtb_reroll = not animalsTable.talent71 and (rtb_buffs() <= 1 and not animalsTable.aura("player", true_bearing) and ((not animalsTable.aura("player", curse_of_the_dreadblades) and not animalsTable.aura("player", adrenaline_rush)) or not animalsTable.aura("player", shark_infested_waters)))
 				ss_useable_noreroll = (combo_points() < 5 + (animalsTable.talent31 and 1 or 0) - (animalsTable.aura("player", broadsides) and 1 or animalsTable.aura("player", jolly_roger) and 1 or 0) - (animalsTable.talent62 and not animalsTable.auraStacks("player", alacrity, 5) and 1 or 0))
@@ -590,7 +590,7 @@ do -- Subtlety
 	function animalsTable.ROGUE3()
 		if UnitAffectingCombat("player") or UnitExists("focus") and UnitAffectingCombat("focus") then
 			animalsTable.multiDoT(GetSpellInfo(nightblade), 40)
-			if animalsTable.validAnimal() and GetTime() > animalsTable.throttleSlaying then
+			if animalsTable.validAnimal() then
 				if animalsDataPerChar.interrupt then if animalsTable.spellCanAttack(kick) then animalsTable.interruptFunction(nil, kick) else animalsTable.interruptFunction() end end
 				ssw_er = animalsTable.equippedGear.Feet ~= shadow_satyrs_walk and 0 or (10 + math.floor(animalsTable.distanceBetween()*0.5))
 				ed_threshold = energy("deficit") <= (20 + (animalsTable.talent33 and 1 or 0) * 35 + (animalsTable.talent71 and 1 or 0) * 25 + ssw_er)

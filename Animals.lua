@@ -155,7 +155,7 @@ function animalsTable.startSlaying()
 end
 
 function animalsTable.checkUpdate(revision)
-	if ReadFile(GetWoWDirectory().."\\Interface\\Addons\\Animals\\animalsVersion.txt") < revision then print("Animals: Update Available") return end
+	if tonumber(ReadFile(GetWoWDirectory().."\\Interface\\Addons\\Animals\\animalsVersion.txt")) < tonumber(revision) then print("Animals: Update Available. Latest Version: "..revision..", Current Version: "..ReadFile(GetWoWDirectory().."\\Interface\\Addons\\Animals\\animalsVersion.txt")) return end
 end
 
 function animalsTable.revisionCheckFailed()
@@ -180,6 +180,7 @@ function animalsTable.createSlayingInformationFrame()
 	slayingInformationFrame:RegisterEvent("UNIT_SPELLCAST_FAILED")
 	slayingInformationFrame:RegisterEvent("UNIT_SpELLCAST_FAILED_QUIET")
 	slayingInformationFrame:RegisterEvent("UNIT_SPELLCAST_START")
+	slayingInformationFrame:RegisterEvent("UNIT_SPELLCAST_STOP")
 	slayingInformationFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 	slayingInformationFrame:SetScript("OnEvent", animalsTable.respondSlayingInformationFrame)
 	slayingInformationFrame:SetScript("OnUpdate", animalsTable.iterateSlayingInformationFrame)
@@ -273,10 +274,14 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	    if not cacheGearQueued then C_Timer.After(1, animalsTable.cacheGear); cacheGearQueued = true end
 	elseif registeredEvent == "PLAYER_REGEN_ENABLED" then
 	    -- animalsTable.MONK.lastCast = 0
-	elseif registeredEvent == "UNIT_SPELLCAST_START" then
+	elseif registeredEvent == "UNIT_SPELLCAST_START" or registeredEvent == "UNIT_SPELLCAST_CHANNEL_START" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
-		animalsTable.throttleSlaying = math.huge
+		animalsTable.throttleSlaying = 1
+	elseif registeredEvent == "UNIT_SPELLCAST_STOP" or registeredEvent == "UNIT_SPELLCAST_CHANNEL_STOP" then
+		local unitID, __, __, __, spellID = ...
+		if not UnitIsUnit(unitID, "player") then return end
+		animalsTable.throttleSlaying = 0
 	elseif registeredEvent == "UNIT_SPELLCAST_SUCCEEDED" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
@@ -288,8 +293,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	elseif registeredEvent == "UNIT_SpELLCAST_FAILED" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
-		animalsTable.throttleSlaying = 0
-		animalsTable.logToFile(spellName..": Unthrottling "..failedType)
+		-- animalsTable.logToFile(spellName..": Unthrottling "..failedType)
 
         -- Demon Hunter
         	if spellID == 198793 then -- Vengeful Retreat
@@ -299,8 +303,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 	elseif registeredEvent == "UNIT_SpELLCAST_FAILED_QUIET" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
-		animalsTable.throttleSlaying = 0
-		animalsTable.logToFile(spellName..": Unthrottling "..failedType)
+		-- animalsTable.logToFile(spellName..": Unthrottling "..failedType)
 
         -- Demon Hunter
         	if spellID == 198793 then -- Vengeful Retreat
@@ -322,6 +325,12 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
         animalsTable.waitForCombatLog = false
 
 	    if event == "SPELL_AURA_APPLIED" or event == "SPELL_AURA_REFRESH" then
+	    	-- Priest
+		    	if spellID == 194384 then
+		    		animalsTable.setWaitForAura(false)
+		    		return
+		    	end
+		    	
 	    	-- Rogue
 	    		if spellID == 13877 then
 	    			setBF_CD(0)
@@ -466,14 +475,22 @@ end
         		order = 2,
         		hidden = function() return animalsDataPerChar.class ~= "PRIEST" end,
         		args = {
-        			PowerWordRadiancePercent = {
+        			PlayStyle = {
+        				order = 1,
+        				type = "select",
+        				name = "Disc Play Style",
+        				values = {"Pure Throughput", "AoE Burst", "Spot Healing", "AMR"},
+        				get = function() return animalsDataPerChar.discPriestStyle or 1 end,
+        				set = function(i,v) animalsDataPerChar.discPriestStyle = v end
+    				},
+        			PowerWordRadiancePartyPercent = {
         				order = 1,
         				type = "range",
         				name = "Power Word Radiance Health Percent",
-        				softMin = 3,
-        				softMax = 10,
-        				get = function() return animalsDataPerChar.powerRadiancePercent end,
-        				set = function(i,v) animalsDataPerChar.powerRadiancePercent = v end,
+        				softMin = 1,
+        				softMax = 100,
+        				get = function() return animalsDataPerChar.powerRadiancePartyPercent end,
+        				set = function(i,v) animalsDataPerChar.powerRadiancePartyPercent = v end,
         			},
         			PleaPartyPercent = {
         				order = 1,
@@ -481,17 +498,26 @@ end
         				name = "Plea Health Percent",
         				softMin = 1,
         				softMax = 5,
-        				get = function() return animalsDataPerChar.pleaPercent end,
-        				set = function(i,v) animalsDataPerChar.pleaPercent = v end,
+        				get = function() return animalsDataPerChar.pleaPartyPercent end,
+        				set = function(i,v) animalsDataPerChar.pleaPartyPercent = v end,
         			},
-        			ShadowMendPercent = {
+        			ShadowMendPartyPercent = {
         				order = 1,
         				type = "range",
         				name = "Shadow Mend Health Percent",
         				softMin = 1,
         				softMax = 3,
-        				get = function() return animalsDataPerChar.shadowMendPercent end,
-        				set = function(i,v) animalsDataPerChar.shadowMendPercent = v end,
+        				get = function() return animalsDataPerChar.shadowMendPartyPercent end,
+        				set = function(i,v) animalsDataPerChar.shadowMendPartyPercent = v end,
+        			},
+        			AoEBurstAtonementCount = {
+        				order = 1,
+        				type = "range",
+        				name = "Atonement Stacks To Build",
+        				softMin = 5,
+        				softMax = 15,
+        				get = function() return animalsDataPerChar.atonementStacksAoEBurst end,
+        				set = function(i,v) animalsDataPerChar.atonementStacksAoEBurst = v end,
         			},
         		}
     		},
