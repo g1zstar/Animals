@@ -844,7 +844,7 @@ do -- Cast Functions
         animalsTable.debugTable["time"] = GetTime()
         animalsTable.debugTable["reason"] = reason or "N/A"
         if animalsDataPerChar.log then
-            file = ReadFile("C:\\Garrison.json")
+            file = ReadFile(animalsTable.logFile)
             tempStr = json.encode(animalsTable.debugTable, {indent=true})
             WriteFile("C:\\Garrison.json", file..",\n"..tempStr)
         end
