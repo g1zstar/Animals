@@ -3,18 +3,18 @@ local _ = nil
 
 animalsDataPerChar = animalsDataPerChar or {Log = false}
 
-animalsTable.logFile = "C:\\Garrison.json"
+animalsTable.logFile = "F:\\Garrison.json"
 
-if not animalsDataPerChar.chaosMin then
+-- if not animalsDataPerChar.chaosMin then
 	animalsDataPerChar.chaosMin = -20
 	animalsDataPerChar.chaosMax = 40
-end
-if not animalsDataPerChar.castMin then
+-- end
+-- if not animalsDataPerChar.castMin then
     animalsDataPerChar.castMin = 10
     animalsDataPerChar.castMax = 25
     animalsDataPerChar.channelMin = 85
     animalsDataPerChar.channelMax = 95
-end
+-- end
 
 animalsTable.skipLoS = {
     76585, -- Ragewing

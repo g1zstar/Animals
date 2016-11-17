@@ -290,7 +290,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
 			animalsTable.MONK.lastCast = spellID
 			return
 		end
-	elseif registeredEvent == "UNIT_SpELLCAST_FAILED" then
+	elseif registeredEvent == "UNIT_SPELLCAST_FAILED" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
 		-- animalsTable.logToFile(spellName..": Unthrottling "..failedType)
@@ -300,7 +300,7 @@ function animalsTable.respondSlayingInformationFrame(self, registeredEvent, ...)
         		SetHackEnabled("Fly", false)
         		return
         	end
-	elseif registeredEvent == "UNIT_SpELLCAST_FAILED_QUIET" then
+	elseif registeredEvent == "UNIT_SPELLCAST_FAILED_QUIET" then
 		local unitID, __, __, __, spellID = ...
 		if not UnitIsUnit(unitID, "player") then return end
 		-- animalsTable.logToFile(spellName..": Unthrottling "..failedType)
@@ -469,58 +469,6 @@ end
             		}
             	}
         	},
-        	Priest = {
-        		name = "Priest Settings",
-        		type = "group",
-        		order = 2,
-        		hidden = function() return animalsDataPerChar.class ~= "PRIEST" end,
-        		args = {
-        			PlayStyle = {
-        				order = 1,
-        				type = "select",
-        				name = "Disc Play Style",
-        				values = {"Pure Throughput", "AoE Burst", "Spot Healing", "AMR"},
-        				get = function() return animalsDataPerChar.discPriestStyle or 1 end,
-        				set = function(i,v) animalsDataPerChar.discPriestStyle = v end
-    				},
-        			PowerWordRadiancePartyPercent = {
-        				order = 1,
-        				type = "range",
-        				name = "Power Word Radiance Health Percent",
-        				softMin = 1,
-        				softMax = 100,
-        				get = function() return animalsDataPerChar.powerRadiancePartyPercent end,
-        				set = function(i,v) animalsDataPerChar.powerRadiancePartyPercent = v end,
-        			},
-        			PleaPartyPercent = {
-        				order = 1,
-        				type = "range",
-        				name = "Plea Health Percent",
-        				softMin = 1,
-        				softMax = 5,
-        				get = function() return animalsDataPerChar.pleaPartyPercent end,
-        				set = function(i,v) animalsDataPerChar.pleaPartyPercent = v end,
-        			},
-        			ShadowMendPartyPercent = {
-        				order = 1,
-        				type = "range",
-        				name = "Shadow Mend Health Percent",
-        				softMin = 1,
-        				softMax = 3,
-        				get = function() return animalsDataPerChar.shadowMendPartyPercent end,
-        				set = function(i,v) animalsDataPerChar.shadowMendPartyPercent = v end,
-        			},
-        			AoEBurstAtonementCount = {
-        				order = 1,
-        				type = "range",
-        				name = "Atonement Stacks To Build",
-        				softMin = 5,
-        				softMax = 15,
-        				get = function() return animalsDataPerChar.atonementStacksAoEBurst end,
-        				set = function(i,v) animalsDataPerChar.atonementStacksAoEBurst = v end,
-        			},
-        		}
-    		},
             Debug = {
                 name = "Debug Settings",
                 type = "group",

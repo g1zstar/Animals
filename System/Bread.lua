@@ -57,7 +57,7 @@ do -- Unit Functions
 
     function animalsTable.animalIsBoss(unit)
         if not unit then unit = "target" end
-        if ObjectExists(unit) and UnitExists(unit) then
+        if ObjectExists(unit) then
             if tContains(animalsTable.bossIDList, ObjectID(unit)) then
                 return true
             else
@@ -846,7 +846,7 @@ do -- Cast Functions
         if animalsDataPerChar.log then
             file = ReadFile(animalsTable.logFile)
             tempStr = json.encode(animalsTable.debugTable, {indent=true})
-            WriteFile("C:\\Garrison.json", file..",\n"..tempStr)
+            WriteFile(animalsTable.logFile, file..",\n"..tempStr)
         end
         -- animalsTable.waitForCombatLog = true
         animalsTable.interruptNextTick = nil
